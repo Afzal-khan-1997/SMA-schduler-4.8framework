@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{4D43A2F0-7D1E-46E0-9B52-4E4FB21D7E48}</ProjectGuid>
+    <OutputType>WinExe</OutputType>
+    <StartupObject>SMAScheduler.Program</StartupObject>
+    <RootNamespace>SMAScheduler</RootNamespace>
+    <AssemblyName>SMAScheduler</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <MyType>WindowsForms</MyType>
+    <OptionExplicit>On</OptionExplicit>
+    <OptionCompare>Binary</OptionCompare>
+    <OptionStrict>Off</OptionStrict>
+    <OptionInfer>On</OptionInfer>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <DefineDebug>true</DefineDebug>
+    <DefineTrace>true</DefineTrace>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DocumentationFile>SMAScheduler.xml</DocumentationFile>
+    <NoWarn>42016,41999,42017,42018,42019,42032,42036,42353,42354,42355</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <DefineDebug>false</DefineDebug>
+    <DefineTrace>true</DefineTrace>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DocumentationFile>SMAScheduler.xml</DocumentationFile>
+    <NoWarn>42016,41999,42017,42018,42019,42032,42036,42353,42354,42355</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.IO.Compression" />
+    <Reference Include="System.IO.Compression.FileSystem" />
+    <Reference Include="System.Web.Extensions" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+    <Reference Include="System.Xml.Linq" />
+  </ItemGroup>
+  <ItemGroup>
+    <Import Include="Microsoft.VisualBasic" />
+    <Import Include="System" />
+    <Import Include="System.Collections" />
+    <Import Include="System.Collections.Generic" />
+    <Import Include="System.Data" />
+    <Import Include="System.Drawing" />
+    <Import Include="System.Diagnostics" />
+    <Import Include="System.Linq" />
+    <Import Include="System.Windows.Forms" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="EmployeeCatalogService.vb" />
+    <Compile Include="FormTransitionService.vb" />
+    <Compile Include="LiveProjectCatalogService.vb" />
+    <Compile Include="PlannerPreviewForm.vb" />
+    <Compile Include="PlannerSyncService.vb" />
+    <Compile Include="Program.vb" />
+    <Compile Include="ProjectLibraryService.vb" />
+    <Compile Include="ScheduleEngine.vb" />
+    <Compile Include="ScheduleTask.vb" />
+    <Compile Include="SMAPlannerForm.Designer.vb">
+      <DependentUpon>SMAPlannerForm.vb</DependentUpon>
+    </Compile>
+    <Compile Include="SMAPlannerForm.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SMASchedulerForm.Designer.vb">
+      <DependentUpon>SMASchedulerForm.vb</DependentUpon>
+    </Compile>
+    <Compile Include="SMASchedulerForm.vb">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="SqlProjectRepository.vb" />
+    <Compile Include="TaskCatalogItem.vb" />
+    <Compile Include="TaskCatalogService.vb" />
+    <Compile Include="XlsxExportService.vb" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="SMAPlannerForm.resx">
+      <DependentUpon>SMAPlannerForm.vb</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="SMASchedulerForm.resx">
+      <DependentUpon>SMASchedulerForm.vb</DependentUpon>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" />
+    <None Include="schema.sql" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.VisualBasic.targets" />
+</Project>
