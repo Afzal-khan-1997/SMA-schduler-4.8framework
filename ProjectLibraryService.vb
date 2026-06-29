@@ -28,6 +28,7 @@ Public Class ProjectLibraryService
                     projects(key) = item
                 End If
             Catch ex As IOException
+            Catch ex As ArgumentException
             Catch ex As InvalidOperationException
             End Try
         Next
@@ -159,6 +160,8 @@ Public Class ProjectLibraryService
                         Continue For
                     End If
 
+                    Dim hasDependencyType = row.Count >= 14
+
                     snapshot.Tasks.Add(New ScheduleTask With {
                         .TaskId = CInt(DecimalCellValue(row(0))),
                         .DatabaseTaskId = CInt(DecimalCellValue(row(1))),
@@ -173,7 +176,8 @@ Public Class ProjectLibraryService
                         .DurationDays = DecimalCellValue(row(9)),
                         .PercentComplete = CInt(DecimalCellValue(row(10))),
                         .Predecessors = Convert.ToString(row(11), CultureInfo.InvariantCulture),
-                        .ModuleId = CInt(DecimalCellValue(row(12)))
+                        .DependencyType = If(hasDependencyType, Convert.ToString(row(12), CultureInfo.InvariantCulture), "FS"),
+                        .ModuleId = CInt(DecimalCellValue(row(If(hasDependencyType, 13, 12))))
                     })
                 Next
 
@@ -260,8 +264,11 @@ Public Class ProjectLibraryItem
     Public Property ProjectName As String = ""
     Public Property VersionNumber As String = ""
     Public Property ProjectSize As String = ""
+    Public Property ProjectType As String = "New"
     Public Property TaskCount As Integer
     Public Property ResourceHours As Decimal
+    Public Property StartDate As Date?
+    Public Property FinishDate As Date?
     Public Property StartDateText As String = ""
     Public Property FinishDateText As String = ""
     Public Property UpdatedOn As Date
@@ -272,6 +279,7 @@ Public Class ProjectLibraryItem
             .ProjectName = snapshot.ProjectName,
             .VersionNumber = snapshot.VersionNumber,
             .ProjectSize = snapshot.ProjectSize,
+            .ProjectType = ResolveProjectType(snapshot.ProjectType, snapshot.ProjectName),
             .TaskCount = If(snapshot.Tasks Is Nothing, 0, snapshot.Tasks.Count),
             .ResourceHours = If(snapshot.Tasks Is Nothing, 0D, snapshot.Tasks.Sum(Function(task) task.ResourceHours)),
             .UpdatedOn = If(snapshot.UpdatedOn = Date.MinValue, File.GetLastWriteTime(filePath), snapshot.UpdatedOn),
@@ -279,10 +287,30 @@ Public Class ProjectLibraryItem
         }
 
         If snapshot.Tasks IsNot Nothing AndAlso snapshot.Tasks.Count > 0 Then
-            item.StartDateText = snapshot.Tasks.Min(Function(task) task.StartDate).ToString("dd-MMM-yyyy", CultureInfo.InvariantCulture)
-            item.FinishDateText = snapshot.Tasks.Max(Function(task) task.FinishDate).ToString("dd-MMM-yyyy", CultureInfo.InvariantCulture)
+            item.StartDate = snapshot.Tasks.Min(Function(task) task.StartDate).Date
+            item.FinishDate = snapshot.Tasks.Max(Function(task) task.FinishDate).Date
+            item.StartDateText = item.StartDate.Value.ToString("dd-MMM-yyyy", CultureInfo.InvariantCulture)
+            item.FinishDateText = item.FinishDate.Value.ToString("dd-MMM-yyyy", CultureInfo.InvariantCulture)
         End If
 
         Return item
+    End Function
+
+    Private Shared Function ResolveProjectType(savedType As String, projectName As String) As String
+        If Not String.IsNullOrWhiteSpace(savedType) Then
+            Return savedType.Trim()
+        End If
+
+        Dim normalizedName = If(projectName, "")
+        If normalizedName.IndexOf("feedback", StringComparison.OrdinalIgnoreCase) >= 0 Then
+            Return "Feedback"
+        End If
+        If normalizedName.IndexOf("update", StringComparison.OrdinalIgnoreCase) >= 0 OrElse
+            normalizedName.IndexOf("bre", StringComparison.OrdinalIgnoreCase) >= 0 OrElse
+            normalizedName.IndexOf("rol", StringComparison.OrdinalIgnoreCase) >= 0 Then
+            Return "Update"
+        End If
+
+        Return "New"
     End Function
 End Class

@@ -31,8 +31,8 @@ Partial Class SMASchedulerForm
         btnLink = New ToolStripButton()
         btnUnlink = New ToolStripButton()
         btnMilestone = New ToolStripButton()
-        sepPlanner = New ToolStripSeparator()
-        btnPlanner = New ToolStripButton()
+        sepTheme = New ToolStripSeparator()
+        btnChangeTheme = New ToolStripButton()
         headerPanel = New Panel()
         appTitle = New Label()
         projectLabel = New Label()
@@ -46,7 +46,6 @@ Partial Class SMASchedulerForm
         projectSizeLabel = New Label()
         _projectSizeSelector = New ComboBox()
         _includeSaturdays = New CheckBox()
-        btnSchedulePlanner = New Button()
         _summaryTitle = New Label()
         _summaryDates = New Label()
         _summaryProgress = New Label()
@@ -84,7 +83,7 @@ Partial Class SMASchedulerForm
         commandBar.BackColor = Color.FromArgb(CByte(35), CByte(46), CByte(66))
         commandBar.GripStyle = ToolStripGripStyle.Hidden
         commandBar.ImageScalingSize = New Size(18, 18)
-        commandBar.Items.AddRange(New ToolStripItem() {btnNew, btnOpen, btnSave, btnRefreshCapacity, sepFile, btnAddTask, btnDelete, btnMoveUp, btnMoveDown, sepTasks, btnLink, btnUnlink, btnMilestone})
+        commandBar.Items.AddRange(New ToolStripItem() {btnNew, btnOpen, btnSave, btnRefreshCapacity, sepFile, btnAddTask, btnDelete, btnMoveUp, btnMoveDown, sepTasks, btnLink, btnUnlink, btnMilestone, sepTheme, btnChangeTheme})
         commandBar.Location = New Point(0, 0)
         commandBar.Name = "commandBar"
         commandBar.Padding = New Padding(11, 9, 11, 9)
@@ -189,18 +188,18 @@ Partial Class SMASchedulerForm
         btnMilestone.Size = New Size(78, 24)
         btnMilestone.Text = "Milestone"
         ' 
-        ' sepPlanner
+        ' sepTheme
         ' 
-        sepPlanner.Name = "sepPlanner"
-        sepPlanner.Size = New Size(6, 27)
+        sepTheme.Name = "sepTheme"
+        sepTheme.Size = New Size(6, 27)
         ' 
-        ' btnPlanner
+        ' btnChangeTheme
         ' 
-        btnPlanner.DisplayStyle = ToolStripItemDisplayStyle.Text
-        btnPlanner.ForeColor = Color.White
-        btnPlanner.Name = "btnPlanner"
-        btnPlanner.Size = New Size(117, 24)
-        btnPlanner.Text = "Planner Preview"
+        btnChangeTheme.DisplayStyle = ToolStripItemDisplayStyle.Text
+        btnChangeTheme.ForeColor = Color.White
+        btnChangeTheme.Name = "btnChangeTheme"
+        btnChangeTheme.Size = New Size(113, 24)
+        btnChangeTheme.Text = "Change Theme"
         ' 
         ' headerPanel
         ' 
@@ -212,12 +211,9 @@ Partial Class SMASchedulerForm
         headerPanel.Controls.Add(_versionNumber)
         headerPanel.Controls.Add(totalHoursLabel)
         headerPanel.Controls.Add(_totalProjectHours)
-        headerPanel.Controls.Add(taskCatalogLabel)
-        headerPanel.Controls.Add(_taskCatalogSelector)
         headerPanel.Controls.Add(projectSizeLabel)
         headerPanel.Controls.Add(_projectSizeSelector)
         headerPanel.Controls.Add(_includeSaturdays)
-        headerPanel.Controls.Add(btnSchedulePlanner)
         headerPanel.Controls.Add(_summaryTitle)
         headerPanel.Controls.Add(_summaryDates)
         headerPanel.Controls.Add(_summaryProgress)
@@ -326,7 +322,7 @@ Partial Class SMASchedulerForm
         ' 
         projectSizeLabel.AutoSize = True
         projectSizeLabel.ForeColor = Color.DimGray
-        projectSizeLabel.Location = New Point(460, 108)
+        projectSizeLabel.Location = New Point(13, 108)
         projectSizeLabel.Name = "projectSizeLabel"
         projectSizeLabel.Size = New Size(86, 20)
         projectSizeLabel.TabIndex = 3
@@ -336,7 +332,7 @@ Partial Class SMASchedulerForm
         ' 
         _projectSizeSelector.DropDownStyle = ComboBoxStyle.DropDownList
         _projectSizeSelector.FormattingEnabled = True
-        _projectSizeSelector.Location = New Point(460, 132)
+        _projectSizeSelector.Location = New Point(13, 132)
         _projectSizeSelector.Margin = New Padding(3, 4, 3, 4)
         _projectSizeSelector.Name = "_projectSizeSelector"
         _projectSizeSelector.Size = New Size(134, 28)
@@ -345,26 +341,12 @@ Partial Class SMASchedulerForm
         ' _includeSaturdays
         ' 
         _includeSaturdays.AutoSize = True
-        _includeSaturdays.Location = New Point(623, 132)
+        _includeSaturdays.Location = New Point(166, 132)
         _includeSaturdays.Name = "_includeSaturdays"
-        _includeSaturdays.Size = New Size(89, 24)
+        _includeSaturdays.Size = New Size(128, 24)
         _includeSaturdays.TabIndex = 20
-        _includeSaturdays.Text = "Saturday"
+        _includeSaturdays.Text = "Weekend Plan"
         _includeSaturdays.UseVisualStyleBackColor = True
-        ' 
-        ' btnSchedulePlanner
-        ' 
-        btnSchedulePlanner.BackColor = Color.FromArgb(CByte(32), CByte(164), CByte(112))
-        btnSchedulePlanner.FlatAppearance.BorderSize = 0
-        btnSchedulePlanner.FlatStyle = FlatStyle.Flat
-        btnSchedulePlanner.Font = New Font("Segoe UI Semibold", 9.0F)
-        btnSchedulePlanner.ForeColor = Color.White
-        btnSchedulePlanner.Location = New Point(650, 58)
-        btnSchedulePlanner.Name = "btnSchedulePlanner"
-        btnSchedulePlanner.Size = New Size(190, 38)
-        btnSchedulePlanner.TabIndex = 22
-        btnSchedulePlanner.Text = "Schedule MS Planner"
-        btnSchedulePlanner.UseVisualStyleBackColor = False
         ' 
         ' _summaryTitle
         ' 
@@ -598,35 +580,48 @@ Partial Class SMASchedulerForm
         PerformLayout()
     End Sub
 
-    Friend WithEvents commandBar As ToolStrip
-    Friend WithEvents btnNew As ToolStripButton
-    Friend WithEvents btnOpen As ToolStripButton
-    Friend WithEvents btnSave As ToolStripButton
-    Friend WithEvents btnRefreshCapacity As ToolStripButton
-    Friend WithEvents sepFile As ToolStripSeparator
-    Friend WithEvents btnAddTask As ToolStripButton
-    Friend WithEvents btnDelete As ToolStripButton
-    Friend WithEvents btnMoveUp As ToolStripButton
-    Friend WithEvents btnMoveDown As ToolStripButton
-    Friend WithEvents sepTasks As ToolStripSeparator
-    Friend WithEvents btnLink As ToolStripButton
-    Friend WithEvents btnUnlink As ToolStripButton
-    Friend WithEvents btnMilestone As ToolStripButton
-    Friend WithEvents sepPlanner As ToolStripSeparator
-    Friend WithEvents btnPlanner As ToolStripButton
-    Friend WithEvents btnSchedulePlanner As Button
-    Friend WithEvents headerPanel As Panel
-    Friend WithEvents appTitle As Label
-    Friend WithEvents projectLabel As Label
-    Friend WithEvents versionLabel As Label
-    Friend WithEvents totalHoursLabel As Label
-    Friend WithEvents resourcesNeededLabel As Label
-    Friend WithEvents contentSplit As SplitContainer
-    Friend WithEvents mainSplit As SplitContainer
-    Friend WithEvents projectSizeLabel As Label
-    Friend WithEvents taskCatalogLabel As Label
-    Friend WithEvents taskWorkspaceTitle As Label
-    Friend WithEvents statusBar As StatusStrip
-    Private WithEvents _totalProjectHours As BlankNumericUpDown
-    Private WithEvents _resourcesNeeded As BlankNumericUpDown
+    Private commandBar As ToolStrip
+    Private btnNew As ToolStripButton
+    Private btnOpen As ToolStripButton
+    Private btnSave As ToolStripButton
+    Private btnRefreshCapacity As ToolStripButton
+    Private sepFile As ToolStripSeparator
+    Private btnAddTask As ToolStripButton
+    Private btnDelete As ToolStripButton
+    Private btnMoveUp As ToolStripButton
+    Private btnMoveDown As ToolStripButton
+    Private sepTasks As ToolStripSeparator
+    Private btnLink As ToolStripButton
+    Private btnUnlink As ToolStripButton
+    Private btnMilestone As ToolStripButton
+    Private sepTheme As ToolStripSeparator
+    Private btnChangeTheme As ToolStripButton
+    Private headerPanel As Panel
+    Private appTitle As Label
+    Private projectLabel As Label
+    Private versionLabel As Label
+    Private totalHoursLabel As Label
+    Private resourcesNeededLabel As Label
+    Private contentSplit As SplitContainer
+    Private mainSplit As SplitContainer
+    Private projectSizeLabel As Label
+    Private taskCatalogLabel As Label
+    Private taskWorkspaceTitle As Label
+    Private statusBar As StatusStrip
+    Private _projectName As TextBox
+    Private _versionNumber As TextBox
+    Private _totalProjectHours As BlankNumericUpDown
+    Private _taskCatalogSelector As ComboBox
+    Private _projectSizeSelector As ComboBox
+    Private _includeSaturdays As CheckBox
+    Private _summaryTitle As Label
+    Private _summaryDates As Label
+    Private _summaryProgress As Label
+    Private _summaryResources As Label
+    Private _resourcesNeeded As BlankNumericUpDown
+    Private _remainingHoursLabel As Label
+    Private WithEvents _grid As DataGridView
+    Private _gantt As GanttPanel
+    Private _detailsPanel As Panel
+    Private _status As ToolStripStatusLabel
 End Class

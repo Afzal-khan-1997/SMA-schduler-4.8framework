@@ -6,7 +6,6 @@ Imports System.IO
 Public Class SMASchedulerForm
     Private ReadOnly _tasks As New BindingList(Of ScheduleTask)
     Private ReadOnly _engine As New ScheduleEngine()
-    Private ReadOnly _plannerSync As New PlannerSyncService()
     Private ReadOnly _taskCatalogService As New TaskCatalogService()
     Private ReadOnly _employeeCatalogService As New EmployeeCatalogService()
     Private ReadOnly _xlsxExportService As New XlsxExportService()
@@ -14,25 +13,13 @@ Public Class SMASchedulerForm
     Private ReadOnly _taskCatalog As New BindingList(Of TaskCatalogItem)
     Private ReadOnly _employees As New BindingList(Of String)
 
-    Private WithEvents _grid As DataGridView
-    Private _gantt As GanttPanel
-    Private _status As ToolStripStatusLabel
-    Private _projectName As TextBox
-    Private _versionNumber As TextBox
-    Private _summaryTitle As Label
-    Private _summaryDates As Label
-    Private _summaryProgress As Label
-    Private _summaryResources As Label
-    Private _detailsPanel As Panel
-    Private _taskCatalogSelector As ComboBox
-    Private _projectSizeSelector As ComboBox
-    Private _includeSaturdays As CheckBox
-    Private _remainingHoursLabel As Label
     Private _capacityGrid As DataGridView
     Private _plannerPieChart As PlannerPieChartPanel
     Private _plannerLegendGrid As DataGridView
     Private _plannerTaskCountLabel As Label
     Private _plannerDurationLabel As Label
+    Private _currentTheme As SchedulerThemePalette = SchedulerThemePalette.ThemeByName(SchedulerThemePreferences.LoadThemeName())
+    Private _projectType As String = "New"
     Private ReadOnly _capacityDateColumns As New Dictionary(Of Integer, Date)
     Private _isRecalculating As Boolean
     Private _isLoadingCatalogControls As Boolean
@@ -60,11 +47,15 @@ Public Class SMASchedulerForm
         ClearProjectForNewSchedule()
         _projectName.Text = If(String.IsNullOrWhiteSpace(liveProject.ProjectName), "SMA Scheduler", liveProject.ProjectName.Trim())
         _versionNumber.Text = If(String.IsNullOrWhiteSpace(liveProject.VersionNumber), "1.0", liveProject.VersionNumber.Trim())
+        _projectType = ProjectTypeFromTemplate(liveProject.TemplateName, liveProject.ProjectName)
         SelectProjectSize(liveProject.ProjectSize)
 
         Dim projectSize = CStr(_projectSizeSelector.SelectedItem)
-        ClearPlanningInputDisplays()
-        RecalculateAndRefresh("Project shell loaded for " & projectSize & " project")
+        LoadTemplateTasks(liveProject.TemplateName, projectSize)
+        If _tasks.Count = 0 Then
+            ClearPlanningInputDisplays()
+        End If
+        RecalculateAndRefresh(liveProject.TemplateName & " template loaded for " & projectSize & " project")
     End Sub
 
     Public Sub LoadProjectSnapshot(snapshot As ProjectSnapshot)
@@ -75,6 +66,7 @@ Public Class SMASchedulerForm
         _tasks.Clear()
         _projectName.Text = snapshot.ProjectName
         _versionNumber.Text = If(String.IsNullOrWhiteSpace(snapshot.VersionNumber), "1.0", snapshot.VersionNumber)
+        _projectType = If(String.IsNullOrWhiteSpace(snapshot.ProjectType), ProjectTypeFromTemplate("", snapshot.ProjectName), snapshot.ProjectType)
         SelectProjectSize(snapshot.ProjectSize)
         _totalProjectHours.Value = ClampDecimal(snapshot.TotalProjectHours, _totalProjectHours.Minimum, _totalProjectHours.Maximum)
         _resourcesNeeded.Value = ClampDecimal(snapshot.ResourcesNeeded, _resourcesNeeded.Minimum, _resourcesNeeded.Maximum)
@@ -103,6 +95,20 @@ Public Class SMASchedulerForm
         _projectSizeSelector.SelectedIndex = 0
     End Sub
 
+    Private Shared Function ProjectTypeFromTemplate(templateName As String, projectName As String) As String
+        Dim classificationText = (If(templateName, "") & " " & If(projectName, "")).Trim()
+        If classificationText.IndexOf("feedback", StringComparison.OrdinalIgnoreCase) >= 0 Then
+            Return "Feedback"
+        End If
+        If classificationText.IndexOf("update", StringComparison.OrdinalIgnoreCase) >= 0 OrElse
+            classificationText.IndexOf("bre", StringComparison.OrdinalIgnoreCase) >= 0 OrElse
+            classificationText.IndexOf("rol", StringComparison.OrdinalIgnoreCase) >= 0 Then
+            Return "Update"
+        End If
+
+        Return "New"
+    End Function
+
     Private Sub ConfigureDesignerUi()
         _grid.AutoGenerateColumns = False
         _grid.Columns.Clear()
@@ -113,6 +119,7 @@ Public Class SMASchedulerForm
         AddGridColumns()
         _grid.DataSource = _tasks
         ApplySchedulerHeaderLayout()
+        ApplyTheme()
         AddHandler _grid.SelectionChanged, AddressOf ScheduleSelectionChanged
         AddHandler btnNew.Click, AddressOf NewProject
         AddHandler btnOpen.Click, AddressOf OpenProjectFile
@@ -125,7 +132,7 @@ Public Class SMASchedulerForm
         AddHandler btnLink.Click, AddressOf LinkSelectedTask
         AddHandler btnUnlink.Click, AddressOf UnlinkSelectedTask
         AddHandler btnMilestone.Click, AddressOf ToggleMilestone
-        AddHandler btnSchedulePlanner.Click, AddressOf ScheduleTasksThroughMsPlanner
+        AddHandler btnChangeTheme.Click, AddressOf ChangeTheme
         AddHandler _totalProjectHours.ValueChanged, AddressOf ProjectInputsChanged
         AddHandler _resourcesNeeded.ValueChanged, AddressOf ProjectInputsChanged
         AddHandler _includeSaturdays.CheckedChanged, AddressOf AllocationInputsChanged
@@ -133,7 +140,31 @@ Public Class SMASchedulerForm
         AddHandler _projectSizeSelector.SelectedIndexChanged, AddressOf CatalogSelectionChanged
     End Sub
 
+    Private Sub ChangeTheme(sender As Object, e As EventArgs)
+        Dim themeNames = SchedulerThemePalette.AllNames().Select(Function(name) Convert.ToString(name, CultureInfo.InvariantCulture)).ToList()
+        If themeNames.Count = 0 Then
+            Return
+        End If
+
+        Dim currentIndex = themeNames.FindIndex(Function(name) String.Equals(name, _currentTheme.Name, StringComparison.OrdinalIgnoreCase))
+        Dim nextIndex = If(currentIndex < 0, 0, (currentIndex + 1) Mod themeNames.Count)
+        _currentTheme = SchedulerThemePalette.ThemeByName(themeNames(nextIndex))
+        SchedulerThemePreferences.SaveThemeName(_currentTheme.Name)
+        ApplyTheme()
+        _gantt.Invalidate()
+        If _plannerPieChart IsNot Nothing Then
+            _plannerPieChart.Invalidate()
+        End If
+        SetStatus("Theme changed to " & _currentTheme.Name)
+    End Sub
+
     Private Sub ApplySchedulerHeaderLayout()
+        If taskCatalogLabel.Parent IsNot Nothing Then
+            taskCatalogLabel.Parent.Controls.Remove(taskCatalogLabel)
+        End If
+        If _taskCatalogSelector.Parent IsNot Nothing Then
+            _taskCatalogSelector.Parent.Controls.Remove(_taskCatalogSelector)
+        End If
         If resourcesNeededLabel.Parent IsNot Nothing Then
             resourcesNeededLabel.Parent.Controls.Remove(resourcesNeededLabel)
         End If
@@ -143,9 +174,72 @@ Public Class SMASchedulerForm
         If _remainingHoursLabel.Parent IsNot Nothing Then
             _remainingHoursLabel.Parent.Controls.Remove(_remainingHoursLabel)
         End If
-        btnSchedulePlanner.Location = New Point(650, 58)
-        btnSchedulePlanner.Size = New Size(190, 38)
-        btnSchedulePlanner.Font = New Font("Segoe UI Semibold", 9.0F)
+    End Sub
+
+    Private Sub ApplyTheme()
+        Dim theme = _currentTheme
+        BackColor = theme.WindowBack
+        commandBar.BackColor = theme.CommandBack
+        For Each item As ToolStripItem In commandBar.Items
+            item.ForeColor = theme.CommandText
+        Next
+
+        headerPanel.BackColor = theme.HeaderBack
+        appTitle.ForeColor = theme.Text
+
+        For Each label In {projectLabel, versionLabel, totalHoursLabel, projectSizeLabel, resourcesNeededLabel}
+            If label IsNot Nothing Then
+                label.ForeColor = theme.MutedText
+            End If
+        Next
+
+        _summaryTitle.BackColor = theme.TileOne
+        _summaryDates.BackColor = theme.TileTwo
+        _summaryProgress.BackColor = theme.TileThree
+        _summaryResources.BackColor = theme.TileFour
+        For Each label In {_summaryTitle, _summaryDates, _summaryProgress, _summaryResources}
+            label.ForeColor = theme.Text
+        Next
+
+        contentSplit.BackColor = theme.Divider
+        mainSplit.BackColor = theme.Divider
+        _detailsPanel.BackColor = theme.PanelBack
+        taskWorkspaceTitle.ForeColor = theme.Text
+        statusBar.BackColor = theme.PanelBack
+        _status.ForeColor = theme.MutedText
+        _gantt.BackColor = theme.PanelBack
+
+        ApplyGridTheme(_grid, theme)
+        If _capacityGrid IsNot Nothing Then
+            ApplyGridTheme(_capacityGrid, theme)
+        End If
+        If _plannerLegendGrid IsNot Nothing Then
+            ApplyGridTheme(_plannerLegendGrid, theme)
+        End If
+        For Each label In {_plannerTaskCountLabel, _plannerDurationLabel}
+            If label IsNot Nothing Then
+                label.BackColor = theme.TileThree
+                label.ForeColor = theme.Text
+            End If
+        Next
+    End Sub
+
+    Private Sub ApplyGridTheme(grid As DataGridView, theme As SchedulerThemePalette)
+        If grid Is Nothing Then
+            Return
+        End If
+
+        grid.BackgroundColor = theme.PanelBack
+        grid.GridColor = theme.GridLine
+        grid.ColumnHeadersDefaultCellStyle.BackColor = theme.GridHeader
+        grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.White
+        grid.ColumnHeadersDefaultCellStyle.Font = New Font("Segoe UI Semibold", 9.0F)
+        grid.DefaultCellStyle.BackColor = theme.PanelBack
+        grid.DefaultCellStyle.ForeColor = theme.Text
+        grid.DefaultCellStyle.SelectionBackColor = theme.Selection
+        grid.DefaultCellStyle.SelectionForeColor = theme.Text
+        grid.AlternatingRowsDefaultCellStyle.BackColor = theme.AlternatingRow
+        grid.EnableHeadersVisualStyles = False
     End Sub
 
     Private Sub LoadCatalogControls()
@@ -438,7 +532,16 @@ Public Class SMASchedulerForm
         _grid.Columns.Add(New CalendarColumn With {.DataPropertyName = NameOf(ScheduleTask.StartDate), .HeaderText = "Start", .Width = 104})
         _grid.Columns.Add(New CalendarColumn With {.DataPropertyName = NameOf(ScheduleTask.FinishDate), .HeaderText = "Finish", .Width = 104})
         _grid.Columns.Add(New DataGridViewTextBoxColumn With {.DataPropertyName = NameOf(ScheduleTask.PercentComplete), .HeaderText = "%", .Width = 52})
-        _grid.Columns.Add(New DataGridViewTextBoxColumn With {.DataPropertyName = NameOf(ScheduleTask.Predecessors), .HeaderText = "Predecessors", .Width = 108})
+        Dim predecessorColumn As New DataGridViewComboBoxColumn With {
+            .DataPropertyName = NameOf(ScheduleTask.PredecessorLink),
+            .HeaderText = "Predecessors",
+            .Width = 108,
+            .FlatStyle = FlatStyle.Flat,
+            .DisplayStyle = DataGridViewComboBoxDisplayStyle.ComboBox,
+            .ValueType = GetType(String)
+        }
+        predecessorColumn.Items.AddRange("", "FS", "SS", "FF", "SF")
+        _grid.Columns.Add(predecessorColumn)
         _grid.Columns.Add(New ResourceChecklistColumn(_employees) With {.DataPropertyName = NameOf(ScheduleTask.AssignedTo), .HeaderText = "Assigned To", .Width = 210})
         _grid.Columns.Add(New CalendarColumn With {.DataPropertyName = NameOf(ScheduleTask.AssignmentDate), .HeaderText = "Assign Date", .Width = 104})
         _grid.Columns.Add(New DataGridViewTextBoxColumn With {.DataPropertyName = NameOf(ScheduleTask.ResourceHours), .HeaderText = "Resource Hours", .Width = 108, .ValueType = GetType(Decimal), .DefaultCellStyle = New DataGridViewCellStyle With {.Format = "0.##"}})
@@ -465,6 +568,7 @@ Public Class SMASchedulerForm
 
     Private Sub ClearProjectForNewSchedule()
         _tasks.Clear()
+        _projectType = "New"
         _projectName.Text = "SMA Scheduler"
         _versionNumber.Text = "1.0"
         _totalProjectHours.Value = 0
@@ -474,12 +578,6 @@ Public Class SMASchedulerForm
     End Sub
 
     Private Sub AddTask(sender As Object, e As EventArgs)
-        Dim selectedCatalogTask = TryCast(_taskCatalogSelector.SelectedItem, TaskCatalogItem)
-        If selectedCatalogTask IsNot Nothing Then
-            AddTaskFromCatalog(selectedCatalogTask)
-            Return
-        End If
-
         Dim nextId = If(_tasks.Count = 0, 1, _tasks.Max(Function(t) t.TaskId) + 1)
         Dim startDate = NextWorkingDate(If(_tasks.Count = 0, Date.Today, _tasks.Max(Function(t) t.FinishDate).AddDays(1)))
         _tasks.Add(New ScheduleTask With {
@@ -522,6 +620,49 @@ Public Class SMASchedulerForm
         SelectTask(nextId)
         RecalculateAndRefresh("Task added from allocation panel")
     End Sub
+
+    Private Sub LoadTemplateTasks(templateName As String, projectSize As String)
+        Dim templateTasks = _taskCatalogService.LoadTemplateTasks(templateName, projectSize)
+        Dim startDate = NextWorkingDate(Date.Today)
+        Dim totalTemplateHours = 0D
+
+        _tasks.Clear()
+        For Each catalogTask In templateTasks
+            Dim requestedHours = catalogTask.HoursForSize(projectSize)
+            If requestedHours <= 0D Then
+                Continue For
+            End If
+
+            totalTemplateHours += requestedHours
+            _tasks.Add(CreateTemplateScheduleTask(catalogTask, _tasks.Count + 1, requestedHours, startDate))
+        Next
+
+        _totalProjectHours.Value = ClampDecimal(totalTemplateHours, _totalProjectHours.Minimum, _totalProjectHours.Maximum)
+        _resourcesNeeded.Value = 0D
+        If _tasks.Count > 0 Then
+            SelectTask(1)
+        End If
+    End Sub
+
+    Private Function CreateTemplateScheduleTask(catalogTask As TaskCatalogItem, taskId As Integer, requestedHours As Decimal, startDate As Date) As ScheduleTask
+        Return New ScheduleTask With {
+            .TaskId = taskId,
+            .DatabaseTaskId = catalogTask.DatabaseTaskId,
+            .TaskName = catalogTask.Title,
+            .StartDate = startDate,
+            .AssignmentDate = startDate,
+            .DurationDays = DurationFromHours(requestedHours),
+            .PercentComplete = 0,
+            .Predecessors = If(taskId <= 1, "", (taskId - 1).ToString(CultureInfo.InvariantCulture)),
+            .DependencyType = "FS",
+            .AssignedTo = "",
+            .ResourceNames = "",
+            .ResourceAllocations = "",
+            .DailyResourceAllocations = "",
+            .ResourceHours = 0D,
+            .ModuleId = catalogTask.ModuleId
+        }
+    End Function
 
     Private Sub DeleteTask(sender As Object, e As EventArgs)
         Dim selected = SelectedTask()
@@ -586,6 +727,7 @@ Public Class SMASchedulerForm
         Dim task = DirectCast(_grid.CurrentRow.DataBoundItem, ScheduleTask)
         Dim predecessor = _tasks(_grid.CurrentRow.Index - 1)
         task.Predecessors = predecessor.TaskId.ToString()
+        task.DependencyType = "FS"
         RecalculateAndRefresh("Linked to previous task")
     End Sub
 
@@ -664,29 +806,6 @@ Public Class SMASchedulerForm
 
             LoadProjectSnapshot(snapshot)
         End Using
-    End Sub
-
-    Private Sub PreviewPlannerSync(sender As Object, e As EventArgs)
-        If _tasks.Count = 0 Then
-            MessageBox.Show(Me, "There is no task assigned for the project.", "Planner Preview", MessageBoxButtons.OK, MessageBoxIcon.Information)
-            Return
-        End If
-
-        Using preview As New PlannerPreviewForm(_projectName.Text, _tasks.ToList())
-            preview.ShowDialog(Me)
-        End Using
-    End Sub
-
-    Private Sub ScheduleTasksThroughMsPlanner(sender As Object, e As EventArgs)
-        If _tasks.Count = 0 Then
-            MessageBox.Show(Me, "There is no task assigned for the project.", "No Tasks", MessageBoxButtons.OK, MessageBoxIcon.Information)
-            Return
-        End If
-
-        SaveProjectSnapshotToLibrary()
-        MessageBox.Show(Me, "The tasks have been assigned successfully.", "MS Planner", MessageBoxButtons.OK, MessageBoxIcon.Information)
-        DialogResult = DialogResult.OK
-        Close()
     End Sub
 
     Private Sub GridCellValueChanged(sender As Object, e As DataGridViewCellEventArgs) Handles _grid.CellValueChanged
@@ -803,6 +922,9 @@ Public Class SMASchedulerForm
             Case NameOf(ScheduleTask.AssignmentDate)
                 task.AssignmentDate = NormalizePickedWorkingDate(task.AssignmentDate)
 
+            Case NameOf(ScheduleTask.DependencyType), NameOf(ScheduleTask.PredecessorLink)
+                task.DependencyType = NormalizeDependencyType(task.DependencyType)
+
             Case NameOf(ScheduleTask.ResourceHours)
                 task.ResourceHours = Math.Max(0D, task.ResourceHours)
                 If String.IsNullOrWhiteSpace(task.ResourceAllocations) OrElse ResourceNamesFromAssignment(task.ResourceAllocations).Count <= 1 Then
@@ -884,8 +1006,8 @@ Public Class SMASchedulerForm
     End Function
 
     Private Function IsBlockedScheduleDate(value As Date) As Boolean
-        Return value.DayOfWeek = DayOfWeek.Sunday OrElse
-            (value.DayOfWeek = DayOfWeek.Saturday AndAlso Not _includeSaturdays.Checked)
+        Return Not _includeSaturdays.Checked AndAlso
+            (value.DayOfWeek = DayOfWeek.Saturday OrElse value.DayOfWeek = DayOfWeek.Sunday)
     End Function
 
     Private Function NormalizeResourceList(value As String) As String
@@ -899,6 +1021,16 @@ Public Class SMASchedulerForm
             Distinct(StringComparer.OrdinalIgnoreCase)
 
         Return String.Join("; ", names)
+    End Function
+
+    Private Shared Function NormalizeDependencyType(value As String) As String
+        Dim safeValue = If(value, "").Trim().ToUpperInvariant()
+        Select Case safeValue
+            Case "SS", "FF", "SF"
+                Return safeValue
+            Case Else
+                Return "FS"
+        End Select
     End Function
 
     Private Sub KeepOnlySelectedResources(task As ScheduleTask)
@@ -1364,6 +1496,7 @@ Public Class SMASchedulerForm
             .ProjectName = _projectName.Text,
             .VersionNumber = _versionNumber.Text,
             .ProjectSize = If(_projectSizeSelector.SelectedItem Is Nothing, "Small", CStr(_projectSizeSelector.SelectedItem)),
+            .ProjectType = _projectType,
             .TotalProjectHours = _totalProjectHours.Value,
             .ResourcesNeeded = CInt(_resourcesNeeded.Value),
             .Tasks = _tasks.ToList(),
@@ -1390,6 +1523,8 @@ Public Class SMASchedulerForm
         Return propertyName = NameOf(ScheduleTask.StartDate) OrElse
             propertyName = NameOf(ScheduleTask.FinishDate) OrElse
             propertyName = NameOf(ScheduleTask.DurationDays) OrElse
+            propertyName = NameOf(ScheduleTask.DependencyType) OrElse
+            propertyName = NameOf(ScheduleTask.PredecessorLink) OrElse
             propertyName = NameOf(ScheduleTask.AssignedTo) OrElse
             propertyName = NameOf(ScheduleTask.AssignmentDate) OrElse
             propertyName = NameOf(ScheduleTask.ResourceHours)
@@ -1595,16 +1730,171 @@ Public Class SMASchedulerForm
 
 End Class
 
+Public NotInheritable Class SchedulerThemePreferences
+    Private Sub New()
+    End Sub
+
+    Private Shared ReadOnly Property PreferenceFile As String
+        Get
+            Return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SMA Scheduler", "theme.txt")
+        End Get
+    End Property
+
+    Public Shared Function LoadThemeName() As String
+        Try
+            If File.Exists(PreferenceFile) Then
+                Dim savedName = File.ReadAllText(PreferenceFile).Trim()
+                If Not String.IsNullOrWhiteSpace(savedName) Then
+                    Return savedName
+                End If
+            End If
+        Catch ex As IOException
+        Catch ex As UnauthorizedAccessException
+        End Try
+
+        Return "Fresh"
+    End Function
+
+    Public Shared Sub SaveThemeName(themeName As String)
+        If String.IsNullOrWhiteSpace(themeName) Then
+            Return
+        End If
+
+        Try
+            Directory.CreateDirectory(Path.GetDirectoryName(PreferenceFile))
+            File.WriteAllText(PreferenceFile, themeName.Trim())
+        Catch ex As IOException
+        Catch ex As UnauthorizedAccessException
+        End Try
+    End Sub
+End Class
+
 Public Class ProjectSnapshot
     Public Property ProjectName As String = "SMA Scheduler"
     Public Property VersionNumber As String = "1.0"
     Public Property PlannerPlan As String = "SMA Planner"
     Public Property ProjectSize As String = "Small"
+    Public Property ProjectType As String = ""
     Public Property TotalProjectHours As Decimal
     Public Property ResourcesNeeded As Integer = 1
     Public Property ResourceHours As Decimal
     Public Property Tasks As New List(Of ScheduleTask)
     Public Property UpdatedOn As Date
+End Class
+
+Public Class SchedulerThemePalette
+    Public Property Name As String = ""
+    Public Property WindowBack As Color
+    Public Property PanelBack As Color
+    Public Property HeaderBack As Color
+    Public Property CommandBack As Color
+    Public Property CommandText As Color
+    Public Property GridHeader As Color
+    Public Property GridLine As Color
+    Public Property Selection As Color
+    Public Property AlternatingRow As Color
+    Public Property Text As Color
+    Public Property MutedText As Color
+    Public Property Action As Color
+    Public Property Divider As Color
+    Public Property TileOne As Color
+    Public Property TileTwo As Color
+    Public Property TileThree As Color
+    Public Property TileFour As Color
+
+    Public Shared Function AllNames() As Object()
+        Return Themes().Select(Function(theme) CObj(theme.Name)).ToArray()
+    End Function
+
+    Public Shared Function ThemeByName(themeName As String) As SchedulerThemePalette
+        Dim selected = Themes().FirstOrDefault(Function(theme) String.Equals(theme.Name, themeName, StringComparison.OrdinalIgnoreCase))
+        Return If(selected, Themes().First())
+    End Function
+
+    Private Shared Function Themes() As List(Of SchedulerThemePalette)
+        Return New List(Of SchedulerThemePalette) From {
+            New SchedulerThemePalette With {
+                .Name = "Fresh",
+                .WindowBack = Color.FromArgb(244, 246, 249),
+                .PanelBack = Color.White,
+                .HeaderBack = Color.FromArgb(229, 241, 255),
+                .CommandBack = Color.FromArgb(35, 46, 66),
+                .CommandText = Color.White,
+                .GridHeader = Color.FromArgb(35, 46, 66),
+                .GridLine = Color.FromArgb(232, 236, 242),
+                .Selection = Color.FromArgb(219, 235, 255),
+                .AlternatingRow = Color.FromArgb(250, 252, 255),
+                .Text = Color.FromArgb(24, 31, 42),
+                .MutedText = Color.FromArgb(75, 85, 99),
+                .Action = Color.FromArgb(32, 164, 112),
+                .Divider = Color.FromArgb(224, 229, 236),
+                .TileOne = Color.FromArgb(223, 245, 232),
+                .TileTwo = Color.FromArgb(255, 243, 205),
+                .TileThree = Color.FromArgb(225, 239, 255),
+                .TileFour = Color.FromArgb(248, 222, 234)
+            },
+            New SchedulerThemePalette With {
+                .Name = "Sunrise",
+                .WindowBack = Color.FromArgb(250, 247, 242),
+                .PanelBack = Color.FromArgb(255, 253, 250),
+                .HeaderBack = Color.FromArgb(255, 235, 214),
+                .CommandBack = Color.FromArgb(95, 55, 50),
+                .CommandText = Color.White,
+                .GridHeader = Color.FromArgb(95, 55, 50),
+                .GridLine = Color.FromArgb(236, 226, 214),
+                .Selection = Color.FromArgb(255, 223, 186),
+                .AlternatingRow = Color.FromArgb(255, 250, 245),
+                .Text = Color.FromArgb(48, 38, 35),
+                .MutedText = Color.FromArgb(102, 82, 75),
+                .Action = Color.FromArgb(212, 95, 56),
+                .Divider = Color.FromArgb(231, 216, 202),
+                .TileOne = Color.FromArgb(225, 245, 232),
+                .TileTwo = Color.FromArgb(255, 232, 190),
+                .TileThree = Color.FromArgb(221, 238, 255),
+                .TileFour = Color.FromArgb(255, 218, 226)
+            },
+            New SchedulerThemePalette With {
+                .Name = "Mint",
+                .WindowBack = Color.FromArgb(241, 248, 246),
+                .PanelBack = Color.White,
+                .HeaderBack = Color.FromArgb(215, 242, 235),
+                .CommandBack = Color.FromArgb(26, 82, 83),
+                .CommandText = Color.White,
+                .GridHeader = Color.FromArgb(26, 82, 83),
+                .GridLine = Color.FromArgb(220, 236, 234),
+                .Selection = Color.FromArgb(202, 238, 230),
+                .AlternatingRow = Color.FromArgb(248, 253, 252),
+                .Text = Color.FromArgb(25, 43, 45),
+                .MutedText = Color.FromArgb(71, 96, 97),
+                .Action = Color.FromArgb(42, 157, 143),
+                .Divider = Color.FromArgb(205, 225, 223),
+                .TileOne = Color.FromArgb(211, 245, 229),
+                .TileTwo = Color.FromArgb(255, 241, 194),
+                .TileThree = Color.FromArgb(218, 234, 255),
+                .TileFour = Color.FromArgb(240, 222, 255)
+            },
+            New SchedulerThemePalette With {
+                .Name = "Graphite",
+                .WindowBack = Color.FromArgb(241, 243, 245),
+                .PanelBack = Color.FromArgb(252, 252, 253),
+                .HeaderBack = Color.FromArgb(232, 235, 239),
+                .CommandBack = Color.FromArgb(42, 45, 52),
+                .CommandText = Color.White,
+                .GridHeader = Color.FromArgb(42, 45, 52),
+                .GridLine = Color.FromArgb(224, 228, 234),
+                .Selection = Color.FromArgb(225, 233, 246),
+                .AlternatingRow = Color.FromArgb(248, 249, 251),
+                .Text = Color.FromArgb(24, 27, 32),
+                .MutedText = Color.FromArgb(89, 96, 107),
+                .Action = Color.FromArgb(50, 132, 120),
+                .Divider = Color.FromArgb(212, 218, 226),
+                .TileOne = Color.FromArgb(220, 240, 230),
+                .TileTwo = Color.FromArgb(255, 239, 201),
+                .TileThree = Color.FromArgb(226, 236, 251),
+                .TileFour = Color.FromArgb(244, 225, 235)
+            }
+        }
+    End Function
 End Class
 
 Public Class BlankNumericUpDown
@@ -2360,3 +2650,197 @@ Public Module GraphicsExtensions
         End Using
     End Sub
 End Module
+
+
+Public Class PlannerPieChartPanel
+    Inherits Panel
+
+    Private _tasks As List(Of ScheduleTask)
+    Private ReadOnly _motionTimer As System.Windows.Forms.Timer
+    Private _animationProgress As Single = 1.0F
+    Private _pulsePhase As Single = 0.0F
+    Private _taskSignature As String = ""
+
+    Private Shared ReadOnly SliceColors As Color() = {
+        Color.FromArgb(45, 125, 221),
+        Color.FromArgb(32, 164, 112),
+        Color.FromArgb(245, 158, 11),
+        Color.FromArgb(236, 72, 153),
+        Color.FromArgb(99, 102, 241),
+        Color.FromArgb(20, 184, 166),
+        Color.FromArgb(239, 68, 68),
+        Color.FromArgb(132, 204, 22)
+    }
+
+    Public Sub New(tasks As IEnumerable(Of ScheduleTask))
+        DoubleBuffered = True
+        _tasks = tasks.OrderBy(Function(task) task.TaskId).ToList()
+        _taskSignature = BuildTaskSignature(_tasks)
+        _motionTimer = New System.Windows.Forms.Timer With {.Interval = 35}
+        AddHandler _motionTimer.Tick, AddressOf MotionTimerTick
+        ResetMotion()
+    End Sub
+
+    Public Shared Function SliceColor(index As Integer) As Color
+        Return SliceColors(index Mod SliceColors.Length)
+    End Function
+
+    Public Sub UpdateTasks(tasks As IEnumerable(Of ScheduleTask))
+        Dim nextTasks = tasks.OrderBy(Function(task) task.TaskId).ToList()
+        Dim nextSignature = BuildTaskSignature(nextTasks)
+        Dim taskSetChanged = Not String.Equals(_taskSignature, nextSignature, StringComparison.Ordinal)
+        _tasks = nextTasks
+        _taskSignature = nextSignature
+        If taskSetChanged Then
+            ResetMotion()
+        End If
+        Invalidate()
+    End Sub
+
+    Private Shared Function BuildTaskSignature(tasks As IEnumerable(Of ScheduleTask)) As String
+        Return String.Join("|", tasks.Select(Function(task) task.TaskId.ToString(CultureInfo.InvariantCulture) & ":" & task.TaskName & ":" & task.DurationDays.ToString("0.###", CultureInfo.InvariantCulture)))
+    End Function
+
+    Private Sub ResetMotion()
+        _animationProgress = 0.0F
+        _pulsePhase = 0.0F
+        If _motionTimer IsNot Nothing AndAlso Not _motionTimer.Enabled Then
+            _motionTimer.Start()
+        End If
+        Invalidate()
+    End Sub
+
+    Private Sub MotionTimerTick(sender As Object, e As EventArgs)
+        If IsDisposed Then
+            _motionTimer.Stop()
+            Return
+        End If
+
+        If _animationProgress < 1.0F Then
+            _animationProgress = Math.Min(1.0F, _animationProgress + 0.045F)
+        End If
+        _pulsePhase += 0.08F
+        If _pulsePhase > CSng(Math.PI * 2) Then
+            _pulsePhase -= CSng(Math.PI * 2)
+        End If
+
+        Invalidate()
+    End Sub
+
+    Protected Overrides Sub OnPaint(e As PaintEventArgs)
+        MyBase.OnPaint(e)
+
+        e.Graphics.SmoothingMode = SmoothingMode.AntiAlias
+        e.Graphics.Clear(Color.White)
+
+        Dim totalDuration = _tasks.Sum(Function(task) Math.Max(0.01F, CSng(task.DurationDays)))
+        If totalDuration <= 0 Then
+            DrawEmpty(e.Graphics)
+            Return
+        End If
+
+        Dim compact = ClientSize.Height < 260 OrElse ClientSize.Width < 340
+        Dim titleHeight = If(compact, 0, 28)
+        Dim topPadding = If(compact, 0, 36)
+        Dim bottomPadding = If(compact, 0, 10)
+        Dim sidePadding = If(compact, 0, 24)
+        Dim drawingHeight = Math.Max(1, ClientSize.Height - topPadding - bottomPadding)
+        Dim diameter = Math.Min(ClientSize.Width - (sidePadding * 2), drawingHeight)
+
+        If diameter < 28 Then
+            DrawCenteredText(e.Graphics, _tasks.Count.ToString(CultureInfo.InvariantCulture) & " tasks", New Font("Segoe UI Semibold", 9.0F), Color.FromArgb(24, 31, 42), ClientRectangle)
+            Return
+        End If
+
+        Dim bounds As New Rectangle((ClientSize.Width - diameter) \ 2, topPadding + ((drawingHeight - diameter) \ 2), Math.Max(1, diameter - 2), Math.Max(1, diameter - 2))
+
+        Dim startAngle As Single = -90.0F
+        Dim remainingSweep As Single = 360.0F * EaseOutCubic(_animationProgress)
+        For i = 0 To _tasks.Count - 1
+            Dim sweep = CSng(Math.Max(0.01D, _tasks(i).DurationDays) / CDec(totalDuration) * 360D)
+            Dim visibleSweep = Math.Min(sweep, remainingSweep)
+            If visibleSweep <= 0 Then
+                Exit For
+            End If
+            Using brush As New SolidBrush(SliceColor(i))
+                e.Graphics.FillPie(brush, bounds, startAngle, visibleSweep)
+            End Using
+            startAngle += sweep
+            remainingSweep -= visibleSweep
+        Next
+
+        Using pen As New Pen(Color.White, 2.0F)
+            e.Graphics.DrawEllipse(pen, bounds)
+        End Using
+
+        Dim pulseSize = CInt(Math.Round((Math.Sin(_pulsePhase) + 1.0R) * 2.0R))
+        Dim pulseBounds = Rectangle.Inflate(bounds, pulseSize, pulseSize)
+        Dim pulseAlpha = CInt(32 + ((Math.Sin(_pulsePhase) + 1.0R) * 16.0R))
+        Using pen As New Pen(Color.FromArgb(pulseAlpha, 45, 125, 221), 2.0F)
+            e.Graphics.DrawEllipse(pen, pulseBounds)
+        End Using
+
+        Dim center = New Point(bounds.Left + bounds.Width \ 2, bounds.Top + bounds.Height \ 2)
+        Dim innerDiameter = Math.Max(28, CInt(diameter * 0.55))
+        Dim innerBounds As New Rectangle(center.X - innerDiameter \ 2, center.Y - innerDiameter \ 2, innerDiameter, innerDiameter)
+        Using brush As New SolidBrush(Color.White)
+            e.Graphics.FillEllipse(brush, innerBounds)
+        End Using
+
+        Dim title = _tasks.Count.ToString(CultureInfo.InvariantCulture)
+        Dim subtitle = totalDuration.ToString("0.##", CultureInfo.InvariantCulture) & " days"
+        Dim titleFontSize = CSng(Math.Max(9.0R, Math.Min(28.0R, diameter / 5.6R)))
+        Dim subtitleFontSize = CSng(Math.Max(7.0R, Math.Min(12.0R, diameter / 15.5R)))
+        Dim centerTitleTop = innerBounds.Top + CInt(innerBounds.Height * If(compact, 0.16R, 0.24R))
+        DrawCenteredText(e.Graphics, title, New Font("Segoe UI Semibold", titleFontSize), Color.FromArgb(24, 31, 42), New Rectangle(innerBounds.Left, centerTitleTop, innerBounds.Width, Math.Max(18, CInt(innerBounds.Height * 0.28R))))
+        If diameter >= 62 Then
+            DrawCenteredText(e.Graphics, subtitle, New Font("Segoe UI", subtitleFontSize), Color.FromArgb(75, 85, 99), New Rectangle(innerBounds.Left, centerTitleTop + Math.Max(18, CInt(innerBounds.Height * 0.25R)), innerBounds.Width, Math.Max(16, CInt(innerBounds.Height * 0.22R))))
+        End If
+        If Not compact Then
+            DrawCenteredText(e.Graphics, "Task duration split", New Font("Segoe UI Semibold", 12.0F), Color.FromArgb(24, 31, 42), New Rectangle(0, 4, ClientSize.Width, titleHeight))
+        End If
+    End Sub
+
+    Private Shared Function EaseOutCubic(value As Single) As Single
+        Dim progress = Math.Max(0.0F, Math.Min(1.0F, value))
+        Dim inverse = 1.0F - progress
+        Return 1.0F - (inverse * inverse * inverse)
+    End Function
+
+    Private Sub DrawEmpty(graphics As Graphics)
+        DrawCenteredText(graphics, "No scheduled tasks", New Font("Segoe UI Semibold", 13.0F), Color.DimGray, ClientRectangle)
+    End Sub
+
+    Private Sub DrawCenteredText(graphics As Graphics, text As String, font As Font, color As Color, bounds As Rectangle)
+        Using brush As New SolidBrush(color)
+            Using format As New StringFormat With {.Alignment = StringAlignment.Center, .LineAlignment = StringAlignment.Center}
+                graphics.DrawString(text, font, brush, bounds, format)
+            End Using
+        End Using
+    End Sub
+
+    Protected Overrides Sub Dispose(disposing As Boolean)
+        If disposing AndAlso _motionTimer IsNot Nothing Then
+            _motionTimer.Stop()
+            RemoveHandler _motionTimer.Tick, AddressOf MotionTimerTick
+            _motionTimer.Dispose()
+        End If
+        MyBase.Dispose(disposing)
+    End Sub
+End Class
+
+Public Class PlannerPreviewRow
+    Public Property ColorName As String = ""
+    Public Property TaskName As String = ""
+    Public Property DurationText As String = ""
+    Public Property DateRange As String = ""
+
+    Public Shared Function FromTask(task As ScheduleTask, index As Integer) As PlannerPreviewRow
+        Return New PlannerPreviewRow With {
+            .ColorName = "",
+            .TaskName = task.TaskName,
+            .DurationText = task.DurationDays.ToString("0.##", CultureInfo.InvariantCulture) & " days",
+            .DateRange = task.StartDate.ToString("dd-MMM", CultureInfo.InvariantCulture) & " - " & task.FinishDate.ToString("dd-MMM-yyyy", CultureInfo.InvariantCulture)
+        }
+    End Function
+End Class

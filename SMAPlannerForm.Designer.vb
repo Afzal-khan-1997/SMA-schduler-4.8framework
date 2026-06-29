@@ -31,6 +31,19 @@ Partial Class SMAPlannerForm
         gridPanel = New Panel()
         _grid = New DataGridView()
         listTitle = New Label()
+        planningSummaryPanel = New Panel()
+        summaryTitleLabel = New Label()
+        summaryPeriodLabel = New Label()
+        summaryCards = New TableLayoutPanel()
+        newProjectsPanel = New Panel()
+        newProjectsCountLabel = New Label()
+        newProjectsLabel = New Label()
+        updateProjectsPanel = New Panel()
+        updateProjectsCountLabel = New Label()
+        updateProjectsLabel = New Label()
+        feedbackProjectsPanel = New Panel()
+        feedbackProjectsCountLabel = New Label()
+        feedbackProjectsLabel = New Label()
         _status = New Label()
         projectColumn = New DataGridViewTextBoxColumn()
         versionColumn = New DataGridViewTextBoxColumn()
@@ -42,6 +55,11 @@ Partial Class SMAPlannerForm
         updatedColumn = New DataGridViewTextBoxColumn()
         headerPanel.SuspendLayout()
         gridPanel.SuspendLayout()
+        planningSummaryPanel.SuspendLayout()
+        summaryCards.SuspendLayout()
+        newProjectsPanel.SuspendLayout()
+        updateProjectsPanel.SuspendLayout()
+        feedbackProjectsPanel.SuspendLayout()
         CType(_grid, ComponentModel.ISupportInitialize).BeginInit()
         SuspendLayout()
         ' 
@@ -62,7 +80,7 @@ Partial Class SMAPlannerForm
         headerPanel.Location = New Point(0, 0)
         headerPanel.Name = "headerPanel"
         headerPanel.Padding = New Padding(24, 18, 24, 18)
-        headerPanel.Size = New Size(1180, 210)
+        headerPanel.Size = New Size(1180, 220)
         headerPanel.TabIndex = 0
         ' 
         ' titleLabel
@@ -119,9 +137,9 @@ Partial Class SMAPlannerForm
         searchLabel.ForeColor = Color.FromArgb(CByte(75), CByte(85), CByte(99))
         searchLabel.Location = New Point(26, 120)
         searchLabel.Name = "searchLabel"
-        searchLabel.Size = New Size(113, 20)
+        searchLabel.Size = New Size(107, 20)
         searchLabel.TabIndex = 4
-        searchLabel.Text = "Find live project"
+        searchLabel.Text = "Search Projects"
         ' 
         ' _liveProjectSearchBox
         ' 
@@ -136,9 +154,9 @@ Partial Class SMAPlannerForm
         selectorLabel.ForeColor = Color.FromArgb(CByte(75), CByte(85), CByte(99))
         selectorLabel.Location = New Point(336, 120)
         selectorLabel.Name = "selectorLabel"
-        selectorLabel.Size = New Size(83, 20)
+        selectorLabel.Size = New Size(88, 20)
         selectorLabel.TabIndex = 6
-        selectorLabel.Text = "Live project"
+        selectorLabel.Text = "Live Project"
         ' 
         ' _liveProjectSelector
         ' 
@@ -170,7 +188,7 @@ Partial Class SMAPlannerForm
         _liveProjectSizeLabel.Name = "_liveProjectSizeLabel"
         _liveProjectSizeLabel.Size = New Size(260, 34)
         _liveProjectSizeLabel.TabIndex = 9
-        _liveProjectSizeLabel.Text = "Detected size:"
+        _liveProjectSizeLabel.Text = "Project size:"
         _liveProjectSizeLabel.TextAlign = ContentAlignment.MiddleLeft
         ' 
         ' gridPanel
@@ -178,12 +196,13 @@ Partial Class SMAPlannerForm
         gridPanel.BackColor = Color.White
         gridPanel.Controls.Add(_grid)
         gridPanel.Controls.Add(listTitle)
+        gridPanel.Controls.Add(planningSummaryPanel)
         gridPanel.Controls.Add(_status)
         gridPanel.Dock = DockStyle.Fill
-        gridPanel.Location = New Point(0, 210)
+        gridPanel.Location = New Point(0, 220)
         gridPanel.Name = "gridPanel"
         gridPanel.Padding = New Padding(24, 22, 24, 16)
-        gridPanel.Size = New Size(1180, 550)
+        gridPanel.Size = New Size(1180, 600)
         gridPanel.TabIndex = 1
         ' 
         ' _grid
@@ -205,7 +224,7 @@ Partial Class SMAPlannerForm
         _grid.RowHeadersVisible = False
         _grid.RowHeadersWidth = 51
         _grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect
-        _grid.Size = New Size(1132, 450)
+        _grid.Size = New Size(1132, 286)
         _grid.TabIndex = 1
         ' 
         ' listTitle
@@ -218,12 +237,167 @@ Partial Class SMAPlannerForm
         listTitle.Size = New Size(1132, 34)
         listTitle.TabIndex = 0
         listTitle.Text = "Recent Scheduled Projects"
+        '
+        ' planningSummaryPanel
+        '
+        planningSummaryPanel.Controls.Add(summaryCards)
+        planningSummaryPanel.Controls.Add(summaryPeriodLabel)
+        planningSummaryPanel.Controls.Add(summaryTitleLabel)
+        planningSummaryPanel.Dock = DockStyle.Bottom
+        planningSummaryPanel.Location = New Point(24, 342)
+        planningSummaryPanel.Name = "planningSummaryPanel"
+        planningSummaryPanel.Padding = New Padding(0, 12, 0, 8)
+        planningSummaryPanel.Size = New Size(1132, 214)
+        planningSummaryPanel.TabIndex = 2
+        '
+        ' summaryTitleLabel
+        '
+        summaryTitleLabel.Dock = DockStyle.Top
+        summaryTitleLabel.Font = New Font("Segoe UI Semibold", 12.0F)
+        summaryTitleLabel.ForeColor = Color.FromArgb(CByte(24), CByte(31), CByte(42))
+        summaryTitleLabel.Location = New Point(0, 12)
+        summaryTitleLabel.Name = "summaryTitleLabel"
+        summaryTitleLabel.Size = New Size(1132, 30)
+        summaryTitleLabel.TabIndex = 0
+        summaryTitleLabel.Text = "Projects Planned For This Period"
+        '
+        ' summaryPeriodLabel
+        '
+        summaryPeriodLabel.Dock = DockStyle.Top
+        summaryPeriodLabel.ForeColor = Color.FromArgb(CByte(75), CByte(85), CByte(99))
+        summaryPeriodLabel.Location = New Point(0, 42)
+        summaryPeriodLabel.Name = "summaryPeriodLabel"
+        summaryPeriodLabel.Size = New Size(1132, 26)
+        summaryPeriodLabel.TabIndex = 1
+        summaryPeriodLabel.Text = "20-Jun-2026 to 20-Jul-2026"
+        '
+        ' summaryCards
+        '
+        summaryCards.ColumnCount = 3
+        summaryCards.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 33.33333F))
+        summaryCards.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 33.33333F))
+        summaryCards.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 33.33333F))
+        summaryCards.Controls.Add(newProjectsPanel, 0, 0)
+        summaryCards.Controls.Add(updateProjectsPanel, 1, 0)
+        summaryCards.Controls.Add(feedbackProjectsPanel, 2, 0)
+        summaryCards.Dock = DockStyle.Fill
+        summaryCards.Location = New Point(0, 68)
+        summaryCards.Name = "summaryCards"
+        summaryCards.RowCount = 1
+        summaryCards.RowStyles.Add(New RowStyle(SizeType.Percent, 100.0F))
+        summaryCards.Size = New Size(1132, 138)
+        summaryCards.TabIndex = 2
+        '
+        ' newProjectsPanel
+        '
+        newProjectsPanel.BackColor = Color.FromArgb(CByte(223), CByte(245), CByte(232))
+        newProjectsPanel.Controls.Add(newProjectsCountLabel)
+        newProjectsPanel.Controls.Add(newProjectsLabel)
+        newProjectsPanel.Dock = DockStyle.Fill
+        newProjectsPanel.Location = New Point(0, 4)
+        newProjectsPanel.Margin = New Padding(0, 4, 12, 4)
+        newProjectsPanel.Name = "newProjectsPanel"
+        newProjectsPanel.Size = New Size(365, 130)
+        newProjectsPanel.TabIndex = 0
+        '
+        ' newProjectsCountLabel
+        '
+        newProjectsCountLabel.Dock = DockStyle.Fill
+        newProjectsCountLabel.Font = New Font("Segoe UI Semibold", 24.0F)
+        newProjectsCountLabel.ForeColor = Color.FromArgb(CByte(24), CByte(31), CByte(42))
+        newProjectsCountLabel.Location = New Point(0, 42)
+        newProjectsCountLabel.Name = "newProjectsCountLabel"
+        newProjectsCountLabel.Size = New Size(365, 88)
+        newProjectsCountLabel.TabIndex = 1
+        newProjectsCountLabel.Text = "0"
+        newProjectsCountLabel.TextAlign = ContentAlignment.MiddleCenter
+        '
+        ' newProjectsLabel
+        '
+        newProjectsLabel.Dock = DockStyle.Top
+        newProjectsLabel.Font = New Font("Segoe UI Semibold", 10.0F)
+        newProjectsLabel.Location = New Point(0, 0)
+        newProjectsLabel.Name = "newProjectsLabel"
+        newProjectsLabel.Size = New Size(365, 42)
+        newProjectsLabel.TabIndex = 0
+        newProjectsLabel.Text = "New Projects"
+        newProjectsLabel.TextAlign = ContentAlignment.MiddleCenter
+        '
+        ' updateProjectsPanel
+        '
+        updateProjectsPanel.BackColor = Color.FromArgb(CByte(225), CByte(239), CByte(255))
+        updateProjectsPanel.Controls.Add(updateProjectsCountLabel)
+        updateProjectsPanel.Controls.Add(updateProjectsLabel)
+        updateProjectsPanel.Dock = DockStyle.Fill
+        updateProjectsPanel.Location = New Point(389, 4)
+        updateProjectsPanel.Margin = New Padding(12, 4, 12, 4)
+        updateProjectsPanel.Name = "updateProjectsPanel"
+        updateProjectsPanel.Size = New Size(353, 130)
+        updateProjectsPanel.TabIndex = 1
+        '
+        ' updateProjectsCountLabel
+        '
+        updateProjectsCountLabel.Dock = DockStyle.Fill
+        updateProjectsCountLabel.Font = New Font("Segoe UI Semibold", 24.0F)
+        updateProjectsCountLabel.ForeColor = Color.FromArgb(CByte(24), CByte(31), CByte(42))
+        updateProjectsCountLabel.Location = New Point(0, 42)
+        updateProjectsCountLabel.Name = "updateProjectsCountLabel"
+        updateProjectsCountLabel.Size = New Size(353, 88)
+        updateProjectsCountLabel.TabIndex = 1
+        updateProjectsCountLabel.Text = "0"
+        updateProjectsCountLabel.TextAlign = ContentAlignment.MiddleCenter
+        '
+        ' updateProjectsLabel
+        '
+        updateProjectsLabel.Dock = DockStyle.Top
+        updateProjectsLabel.Font = New Font("Segoe UI Semibold", 10.0F)
+        updateProjectsLabel.Location = New Point(0, 0)
+        updateProjectsLabel.Name = "updateProjectsLabel"
+        updateProjectsLabel.Size = New Size(353, 42)
+        updateProjectsLabel.TabIndex = 0
+        updateProjectsLabel.Text = "Update Projects"
+        updateProjectsLabel.TextAlign = ContentAlignment.MiddleCenter
+        '
+        ' feedbackProjectsPanel
+        '
+        feedbackProjectsPanel.BackColor = Color.FromArgb(CByte(248), CByte(222), CByte(234))
+        feedbackProjectsPanel.Controls.Add(feedbackProjectsCountLabel)
+        feedbackProjectsPanel.Controls.Add(feedbackProjectsLabel)
+        feedbackProjectsPanel.Dock = DockStyle.Fill
+        feedbackProjectsPanel.Location = New Point(766, 4)
+        feedbackProjectsPanel.Margin = New Padding(12, 4, 0, 4)
+        feedbackProjectsPanel.Name = "feedbackProjectsPanel"
+        feedbackProjectsPanel.Size = New Size(366, 130)
+        feedbackProjectsPanel.TabIndex = 2
+        '
+        ' feedbackProjectsCountLabel
+        '
+        feedbackProjectsCountLabel.Dock = DockStyle.Fill
+        feedbackProjectsCountLabel.Font = New Font("Segoe UI Semibold", 24.0F)
+        feedbackProjectsCountLabel.ForeColor = Color.FromArgb(CByte(24), CByte(31), CByte(42))
+        feedbackProjectsCountLabel.Location = New Point(0, 42)
+        feedbackProjectsCountLabel.Name = "feedbackProjectsCountLabel"
+        feedbackProjectsCountLabel.Size = New Size(366, 88)
+        feedbackProjectsCountLabel.TabIndex = 1
+        feedbackProjectsCountLabel.Text = "0"
+        feedbackProjectsCountLabel.TextAlign = ContentAlignment.MiddleCenter
+        '
+        ' feedbackProjectsLabel
+        '
+        feedbackProjectsLabel.Dock = DockStyle.Top
+        feedbackProjectsLabel.Font = New Font("Segoe UI Semibold", 10.0F)
+        feedbackProjectsLabel.Location = New Point(0, 0)
+        feedbackProjectsLabel.Name = "feedbackProjectsLabel"
+        feedbackProjectsLabel.Size = New Size(366, 42)
+        feedbackProjectsLabel.TabIndex = 0
+        feedbackProjectsLabel.Text = "Feedback Projects"
+        feedbackProjectsLabel.TextAlign = ContentAlignment.MiddleCenter
         ' 
         ' _status
         ' 
         _status.Dock = DockStyle.Bottom
         _status.ForeColor = Color.DimGray
-        _status.Location = New Point(24, 506)
+        _status.Location = New Point(24, 556)
         _status.Name = "_status"
         _status.Size = New Size(1132, 28)
         _status.TabIndex = 2
@@ -305,7 +479,7 @@ Partial Class SMAPlannerForm
         AutoScaleDimensions = New SizeF(8.0F, 20.0F)
         AutoScaleMode = AutoScaleMode.Font
         BackColor = Color.FromArgb(CByte(244), CByte(246), CByte(249))
-        ClientSize = New Size(1180, 760)
+        ClientSize = New Size(1180, 820)
         Controls.Add(gridPanel)
         Controls.Add(headerPanel)
         Font = New Font("Segoe UI", 9.0F)
@@ -316,31 +490,49 @@ Partial Class SMAPlannerForm
         headerPanel.ResumeLayout(False)
         headerPanel.PerformLayout()
         gridPanel.ResumeLayout(False)
+        planningSummaryPanel.ResumeLayout(False)
+        summaryCards.ResumeLayout(False)
+        newProjectsPanel.ResumeLayout(False)
+        updateProjectsPanel.ResumeLayout(False)
+        feedbackProjectsPanel.ResumeLayout(False)
         CType(_grid, ComponentModel.ISupportInitialize).EndInit()
         ResumeLayout(False)
     End Sub
 
-    Friend WithEvents headerPanel As Panel
-    Friend WithEvents titleLabel As Label
-    Friend WithEvents promptLabel As Label
-    Friend WithEvents btnNewProject As Button
-    Friend WithEvents btnRefreshList As Button
-    Friend WithEvents searchLabel As Label
-    Friend WithEvents _liveProjectSearchBox As TextBox
-    Friend WithEvents selectorLabel As Label
-    Friend WithEvents _liveProjectSelector As ComboBox
-    Friend WithEvents btnScheduleProject As Button
-    Friend WithEvents _liveProjectSizeLabel As Label
-    Friend WithEvents gridPanel As Panel
-    Friend WithEvents _grid As DataGridView
-    Friend WithEvents listTitle As Label
-    Friend WithEvents _status As Label
-    Friend WithEvents projectColumn As DataGridViewTextBoxColumn
-    Friend WithEvents versionColumn As DataGridViewTextBoxColumn
-    Friend WithEvents sizeColumn As DataGridViewTextBoxColumn
-    Friend WithEvents tasksColumn As DataGridViewTextBoxColumn
-    Friend WithEvents hoursColumn As DataGridViewTextBoxColumn
-    Friend WithEvents startColumn As DataGridViewTextBoxColumn
-    Friend WithEvents finishColumn As DataGridViewTextBoxColumn
-    Friend WithEvents updatedColumn As DataGridViewTextBoxColumn
+    Private headerPanel As Panel
+    Private titleLabel As Label
+    Private promptLabel As Label
+    Private btnNewProject As Button
+    Private btnRefreshList As Button
+    Private searchLabel As Label
+    Private _liveProjectSearchBox As TextBox
+    Private selectorLabel As Label
+    Private _liveProjectSelector As ComboBox
+    Private btnScheduleProject As Button
+    Private _liveProjectSizeLabel As Label
+    Private gridPanel As Panel
+    Private _grid As DataGridView
+    Private listTitle As Label
+    Private planningSummaryPanel As Panel
+    Private summaryTitleLabel As Label
+    Private summaryPeriodLabel As Label
+    Private summaryCards As TableLayoutPanel
+    Private newProjectsPanel As Panel
+    Private newProjectsCountLabel As Label
+    Private newProjectsLabel As Label
+    Private updateProjectsPanel As Panel
+    Private updateProjectsCountLabel As Label
+    Private updateProjectsLabel As Label
+    Private feedbackProjectsPanel As Panel
+    Private feedbackProjectsCountLabel As Label
+    Private feedbackProjectsLabel As Label
+    Private _status As Label
+    Private projectColumn As DataGridViewTextBoxColumn
+    Private versionColumn As DataGridViewTextBoxColumn
+    Private sizeColumn As DataGridViewTextBoxColumn
+    Private tasksColumn As DataGridViewTextBoxColumn
+    Private hoursColumn As DataGridViewTextBoxColumn
+    Private startColumn As DataGridViewTextBoxColumn
+    Private finishColumn As DataGridViewTextBoxColumn
+    Private updatedColumn As DataGridViewTextBoxColumn
 End Class

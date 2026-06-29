@@ -61,8 +61,6 @@
     <Compile Include="EmployeeCatalogService.vb" />
     <Compile Include="FormTransitionService.vb" />
     <Compile Include="LiveProjectCatalogService.vb" />
-    <Compile Include="PlannerPreviewForm.vb" />
-    <Compile Include="PlannerSyncService.vb" />
     <Compile Include="Program.vb" />
     <Compile Include="ProjectLibraryService.vb" />
     <Compile Include="ScheduleEngine.vb" />
