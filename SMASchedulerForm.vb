@@ -1,19 +1,27 @@
 Imports System.ComponentModel
+Imports System.Configuration
 Imports System.Drawing.Drawing2D
 Imports System.Globalization
 Imports System.IO
 
 Public Class SMASchedulerForm
+    Private Enum UsageViewMode
+        ResourceUsage
+        TaskUsage
+    End Enum
+
     Private ReadOnly _tasks As New BindingList(Of ScheduleTask)
     Private ReadOnly _engine As New ScheduleEngine()
     Private ReadOnly _taskCatalogService As New TaskCatalogService()
     Private ReadOnly _employeeCatalogService As New EmployeeCatalogService()
     Private ReadOnly _xlsxExportService As New XlsxExportService()
     Private ReadOnly _projectLibrary As New ProjectLibraryService()
+    Private ReadOnly _sqlRepository As SqlProjectRepository = CreateSqlRepository()
     Private ReadOnly _taskCatalog As New BindingList(Of TaskCatalogItem)
     Private ReadOnly _employees As New BindingList(Of String)
 
     Private _capacityGrid As DataGridView
+    Private _taskUsageGrid As DataGridView
     Private _plannerPieChart As PlannerPieChartPanel
     Private _plannerLegendGrid As DataGridView
     Private _plannerTaskCountLabel As Label
@@ -25,6 +33,8 @@ Public Class SMASchedulerForm
     Private _isLoadingCatalogControls As Boolean
     Private _suspendTaskEvents As Boolean
     Private _isLoadingCapacityGrid As Boolean
+    Private _usageViewMode As UsageViewMode = UsageViewMode.ResourceUsage
+    Private _lastSavedSignature As String = ""
 
     Public Sub New()
         InitializeComponent()
@@ -32,7 +42,29 @@ Public Class SMASchedulerForm
         AddHandler _tasks.ListChanged, AddressOf TasksChanged
         RecalculateAndRefresh("Ready")
         ClearPlanningInputDisplays()
+        MarkCurrentStateSaved()
     End Sub
+
+    Private Shared Function CreateSqlRepository() As SqlProjectRepository
+        Dim connectionString = ""
+        Try
+            Dim settings = ConfigurationManager.ConnectionStrings("SmaSchedulerDb")
+            If settings IsNot Nothing Then
+                connectionString = settings.ConnectionString
+            End If
+        Catch
+        End Try
+
+        If String.IsNullOrWhiteSpace(connectionString) Then
+            connectionString = Environment.GetEnvironmentVariable("SMA_SCHEDULER_SQL_CONNECTION")
+        End If
+
+        If String.IsNullOrWhiteSpace(connectionString) Then
+            Return Nothing
+        End If
+
+        Return New SqlProjectRepository(connectionString.Trim())
+    End Function
 
     Public Sub StartNewProject()
         ClearProjectForNewSchedule()
@@ -77,6 +109,7 @@ Public Class SMASchedulerForm
         End If
         RenumberTasks()
         RecalculateAndRefresh("Project opened")
+        MarkCurrentStateSaved()
     End Sub
 
     Private Sub SelectProjectSize(sizeName As String)
@@ -122,9 +155,10 @@ Public Class SMASchedulerForm
         ApplyTheme()
         AddHandler _grid.SelectionChanged, AddressOf ScheduleSelectionChanged
         AddHandler btnNew.Click, AddressOf NewProject
-        AddHandler btnOpen.Click, AddressOf OpenProjectFile
         AddHandler btnSave.Click, AddressOf SaveProjectFile
         AddHandler btnRefreshCapacity.Click, AddressOf RefreshCapacityPlanning
+        AddHandler btnTaskUsage.Click, AddressOf ShowTaskUsageView
+        AddHandler btnResourceUsage.Click, AddressOf ShowResourceUsageView
         AddHandler btnAddTask.Click, AddressOf AddTask
         AddHandler btnDelete.Click, AddressOf DeleteTask
         AddHandler btnMoveUp.Click, AddressOf MoveTaskUp
@@ -183,6 +217,8 @@ Public Class SMASchedulerForm
         For Each item As ToolStripItem In commandBar.Items
             item.ForeColor = theme.CommandText
         Next
+        btnTaskUsage.BackColor = If(_usageViewMode = UsageViewMode.TaskUsage, theme.Action, Color.Transparent)
+        btnResourceUsage.BackColor = If(_usageViewMode = UsageViewMode.ResourceUsage, theme.Action, Color.Transparent)
 
         headerPanel.BackColor = theme.HeaderBack
         appTitle.ForeColor = theme.Text
@@ -215,6 +251,9 @@ Public Class SMASchedulerForm
         End If
         If _plannerLegendGrid IsNot Nothing Then
             ApplyGridTheme(_plannerLegendGrid, theme)
+        End If
+        If _taskUsageGrid IsNot Nothing Then
+            ApplyGridTheme(_taskUsageGrid, theme)
         End If
         For Each label In {_plannerTaskCountLabel, _plannerDurationLabel}
             If label IsNot Nothing Then
@@ -355,6 +394,7 @@ Public Class SMASchedulerForm
         _capacityGrid.ColumnHeadersDefaultCellStyle.Font = New Font("Segoe UI Semibold", 9.0F)
         _capacityGrid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(219, 235, 255)
         _capacityGrid.DefaultCellStyle.SelectionForeColor = Color.FromArgb(24, 31, 42)
+        _taskUsageGrid = BuildTaskUsageGrid()
 
         Dim lowerSplit As New SplitContainer With {
             .Dock = DockStyle.Fill,
@@ -376,7 +416,13 @@ Public Class SMASchedulerForm
         taskWorkspaceTitle.Text = "Capacity Planning"
         taskWorkspaceTitle.Dock = DockStyle.Top
         taskWorkspaceTitle.Height = 38
-        capacityPanel.Controls.Add(_capacityGrid)
+        Dim usageHost As New Panel With {
+            .Dock = DockStyle.Fill,
+            .BackColor = Color.White
+        }
+        usageHost.Controls.Add(_taskUsageGrid)
+        usageHost.Controls.Add(_capacityGrid)
+        capacityPanel.Controls.Add(usageHost)
         capacityPanel.Controls.Add(taskWorkspaceTitle)
         taskWorkspaceTitle.BringToFront()
 
@@ -434,6 +480,7 @@ Public Class SMASchedulerForm
         AddHandler _capacityGrid.CellParsing, AddressOf CapacityGridCellParsing
         AddHandler _capacityGrid.CellEndEdit, AddressOf CapacityGridCellEndEdit
         AddHandler _capacityGrid.DataError, AddressOf CapacityGridDataError
+        ShowUsageView(UsageViewMode.ResourceUsage)
     End Sub
 
     Private Sub ApplyResponsiveSplitter(split As SplitContainer, preferredPanel1Min As Integer, preferredPanel2Min As Integer, panel1Ratio As Double)
@@ -488,6 +535,82 @@ Public Class SMASchedulerForm
             .TextAlign = ContentAlignment.MiddleCenter
         }
     End Function
+
+    Private Function BuildTaskUsageGrid() As DataGridView
+        Dim usageGrid As New DataGridView With {
+            .AllowUserToAddRows = False,
+            .AllowUserToDeleteRows = False,
+            .AutoGenerateColumns = False,
+            .BackgroundColor = Color.White,
+            .BorderStyle = BorderStyle.None,
+            .ColumnHeadersHeight = 32,
+            .Dock = DockStyle.Fill,
+            .EnableHeadersVisualStyles = False,
+            .GridColor = Color.FromArgb(232, 236, 242),
+            .MultiSelect = False,
+            .Name = "_taskUsageGrid",
+            .ReadOnly = True,
+            .RowHeadersVisible = False,
+            .SelectionMode = DataGridViewSelectionMode.FullRowSelect
+        }
+        usageGrid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(35, 46, 66)
+        usageGrid.ColumnHeadersDefaultCellStyle.ForeColor = Color.White
+        usageGrid.ColumnHeadersDefaultCellStyle.Font = New Font("Segoe UI Semibold", 9.0F)
+        usageGrid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(219, 235, 255)
+        usageGrid.DefaultCellStyle.SelectionForeColor = Color.FromArgb(24, 31, 42)
+        usageGrid.Columns.Add(New DataGridViewTextBoxColumn With {.DataPropertyName = NameOf(TaskUsageRow.TaskIdText), .HeaderText = "ID", .Width = 46})
+        usageGrid.Columns.Add(New DataGridViewTextBoxColumn With {.DataPropertyName = NameOf(TaskUsageRow.TaskName), .HeaderText = "Task", .AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, .MinimumWidth = 220})
+        usageGrid.Columns.Add(New DataGridViewTextBoxColumn With {.DataPropertyName = NameOf(TaskUsageRow.StartDateText), .HeaderText = "Start", .Width = 98})
+        usageGrid.Columns.Add(New DataGridViewTextBoxColumn With {.DataPropertyName = NameOf(TaskUsageRow.FinishDateText), .HeaderText = "Finish", .Width = 98})
+        usageGrid.Columns.Add(New DataGridViewTextBoxColumn With {.DataPropertyName = NameOf(TaskUsageRow.DurationText), .HeaderText = "Duration", .Width = 84})
+        usageGrid.Columns.Add(New DataGridViewTextBoxColumn With {.DataPropertyName = NameOf(TaskUsageRow.ResourceHoursText), .HeaderText = "Hours", .Width = 78})
+        usageGrid.Columns.Add(New DataGridViewTextBoxColumn With {.DataPropertyName = NameOf(TaskUsageRow.AssignedTo), .HeaderText = "Resources", .Width = 220})
+        usageGrid.Columns.Add(New DataGridViewTextBoxColumn With {.DataPropertyName = NameOf(TaskUsageRow.Predecessors), .HeaderText = "Link", .Width = 82})
+        Return usageGrid
+    End Function
+
+    Private Sub ShowTaskUsageView(sender As Object, e As EventArgs)
+        ShowUsageView(UsageViewMode.TaskUsage)
+        SetStatus("Task usage view")
+    End Sub
+
+    Private Sub ShowResourceUsageView(sender As Object, e As EventArgs)
+        ShowUsageView(UsageViewMode.ResourceUsage)
+        SetStatus("Resource usage view")
+    End Sub
+
+    Private Sub ShowUsageView(viewMode As UsageViewMode)
+        _usageViewMode = viewMode
+        If _capacityGrid Is Nothing OrElse _taskUsageGrid Is Nothing Then
+            Return
+        End If
+
+        _capacityGrid.Visible = (viewMode = UsageViewMode.ResourceUsage)
+        _taskUsageGrid.Visible = (viewMode = UsageViewMode.TaskUsage)
+
+        If viewMode = UsageViewMode.TaskUsage Then
+            UpdateTaskUsageGrid()
+        Else
+            UpdateCapacityPlanningGrid()
+        End If
+
+        ApplyTheme()
+    End Sub
+
+    Private Sub UpdateTaskUsageGrid()
+        If _taskUsageGrid Is Nothing Then
+            Return
+        End If
+
+        taskWorkspaceTitle.Text = "Task Usage"
+        Dim rows = _tasks.
+            OrderBy(Function(task) task.TaskId).
+            Select(Function(task) TaskUsageRow.FromTask(task)).
+            ToList()
+
+        _taskUsageGrid.DataSource = Nothing
+        _taskUsageGrid.DataSource = rows
+    End Sub
 
     Private Function PlannerLegendGrid() As DataGridView
         Dim legend As New DataGridView With {
@@ -545,7 +668,6 @@ Public Class SMASchedulerForm
         _grid.Columns.Add(New ResourceChecklistColumn(_employees) With {.DataPropertyName = NameOf(ScheduleTask.AssignedTo), .HeaderText = "Assigned To", .Width = 210})
         _grid.Columns.Add(New CalendarColumn With {.DataPropertyName = NameOf(ScheduleTask.AssignmentDate), .HeaderText = "Assign Date", .Width = 104})
         _grid.Columns.Add(New DataGridViewTextBoxColumn With {.DataPropertyName = NameOf(ScheduleTask.ResourceHours), .HeaderText = "Resource Hours", .Width = 108, .ValueType = GetType(Decimal), .DefaultCellStyle = New DataGridViewCellStyle With {.Format = "0.##"}})
-        _grid.Columns.Add(New DataGridViewTextBoxColumn With {.DataPropertyName = NameOf(ScheduleTask.ModuleId), .HeaderText = "Module", .Width = 62})
         _grid.Columns.Add(New DataGridViewTextBoxColumn With {.DataPropertyName = NameOf(ScheduleTask.PlannerTaskId), .HeaderText = "Planner ID", .Width = 110})
     End Sub
 
@@ -559,7 +681,11 @@ Public Class SMASchedulerForm
     End Sub
 
     Private Sub NewProject(sender As Object, e As EventArgs)
-        If MessageBox.Show("Clear the current schedule and start a new project?", "New Project", MessageBoxButtons.YesNo, MessageBoxIcon.Question) = DialogResult.No Then
+        Dim decision = PromptForUnsavedChanges()
+        If decision = DialogResult.Cancel Then
+            Return
+        End If
+        If decision = DialogResult.Yes AndAlso Not SaveProjectToSql(showSuccessMessage:=False) Then
             Return
         End If
 
@@ -575,6 +701,7 @@ Public Class SMASchedulerForm
         _resourcesNeeded.Value = 0
         RecalculateAndRefresh("New project created")
         ClearPlanningInputDisplays()
+        MarkCurrentStateSaved()
     End Sub
 
     Private Sub AddTask(sender As Object, e As EventArgs)
@@ -756,39 +883,103 @@ Public Class SMASchedulerForm
             Return
         End If
 
-        Using dialog As New SaveFileDialog()
-            dialog.Title = "Export SMA schedule to Excel"
-            dialog.Filter = "Excel workbook (*.xlsx)|*.xlsx"
-            dialog.FileName = MakeSafeFileName(_projectName.Text & "_" & _versionNumber.Text) & ".xlsx"
-
-            If dialog.ShowDialog(Me) <> DialogResult.OK Then
-                Return
-            End If
-
-            Dim projectPath = dialog.FileName
-            Dim folder = Path.GetDirectoryName(projectPath)
-            Dim resourceMonth = ResourceWorkbookMonth()
-            Dim resourcePath = Path.Combine(folder, "Capacity Planning_" & resourceMonth.ToString("yyyyMM") & ".xlsx")
-
-            ApplyCapacityGridToSelectedTask()
-            RecalculateAndRefresh("Project saved")
-            _xlsxExportService.ExportProjectPlan(projectPath, _projectName.Text, _versionNumber.Text, _tasks)
-            _xlsxExportService.ExportResourceMonth(resourcePath, _projectName.Text, _versionNumber.Text, _employees, _tasks, resourceMonth, _includeSaturdays.Checked)
-            SaveEmployeeWorkspaceWorkbook()
-            SaveProjectSnapshotToLibrary()
-            MessageBox.Show(Me, "Project has been saved and Capacity Planning has been updated.", "Project Saved", MessageBoxButtons.OK, MessageBoxIcon.Information)
-            SetStatus("Excel exported: " & Path.GetFileName(projectPath) & " and " & Path.GetFileName(resourcePath))
-        End Using
+        SaveProjectToSql(showSuccessMessage:=True)
     End Sub
 
     Private Sub RefreshCapacityPlanning(sender As Object, e As EventArgs)
         ApplyCapacityGridToSelectedTask()
         RecalculateAndRefresh("Capacity planning refreshed")
-        If SaveEmployeeWorkspaceWorkbook() Then
-            SaveProjectSnapshotToLibrary()
-        End If
-        MessageBox.Show(Me, "Capacity Planning has been refreshed.", "Capacity Planning", MessageBoxButtons.OK, MessageBoxIcon.Information)
+        Dim sqlSaved = SaveProjectToSql(showSuccessMessage:=False)
+        UpdateCapacityPlanningGrid()
+        ShowUsageView(UsageViewMode.ResourceUsage)
+        Dim message = If(sqlSaved,
+            "Capacity Planning has been refreshed and SQL has been updated.",
+            "Capacity Planning has been refreshed. SQL was not updated.")
+        MessageBox.Show(Me, message, "Capacity Planning", MessageBoxButtons.OK, MessageBoxIcon.Information)
     End Sub
+
+    Private Function SaveProjectToSql(showSuccessMessage As Boolean) As Boolean
+        If _tasks.Count = 0 Then
+            Return False
+        End If
+
+        ApplyCapacityGridToSelectedTask()
+        RecalculateAndRefresh("Saving project")
+
+        If _sqlRepository Is Nothing Then
+            MessageBox.Show(Me, "SQL connection is not configured. Update App.config with the SmaSchedulerDb connection string before saving.", "SQL Not Configured", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            SetStatus("SQL save skipped because no connection string is configured.")
+            Return False
+        End If
+
+        Try
+            Dim projectName = If(String.IsNullOrWhiteSpace(_projectName.Text), "SMA Scheduler", _projectName.Text.Trim())
+            Dim version = If(String.IsNullOrWhiteSpace(_versionNumber.Text), "1.0", _versionNumber.Text.Trim())
+            Dim projectSize = If(_projectSizeSelector.SelectedItem Is Nothing, "Small", Convert.ToString(_projectSizeSelector.SelectedItem, CultureInfo.InvariantCulture))
+            Dim totalAssignedHours = _tasks.Sum(Function(task) task.ResourceHours)
+
+            _sqlRepository.SaveProject(projectName, _tasks, version, projectSize, _projectType, _totalProjectHours.Value, CInt(_resourcesNeeded.Value), totalAssignedHours)
+
+            SaveEmployeeWorkspaceWorkbook()
+            SaveProjectSnapshotToLibrary()
+            MarkCurrentStateSaved()
+
+            If showSuccessMessage Then
+                MessageBox.Show(Me, "Project has been saved to SQL and Capacity Planning has been updated.", "Project Saved", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            End If
+
+            SetStatus("SQL updated for " & projectName)
+            Return True
+        Catch ex As Exception
+            MessageBox.Show(Me, "SQL update failed." & Environment.NewLine & ex.Message, "SQL Save Failed", MessageBoxButtons.OK, MessageBoxIcon.Error)
+            SetStatus("SQL save failed")
+            Return False
+        End Try
+    End Function
+
+    Private Function PromptForUnsavedChanges() As DialogResult
+        If String.Equals(CurrentProjectSignature(), _lastSavedSignature, StringComparison.Ordinal) Then
+            Return DialogResult.No
+        End If
+
+        Return MessageBox.Show(Me, "Do you want to save changes before creating a new project?", "Unsaved Changes", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Question)
+    End Function
+
+    Private Sub MarkCurrentStateSaved()
+        _lastSavedSignature = CurrentProjectSignature()
+    End Sub
+
+    Private Function CurrentProjectSignature() As String
+        Dim taskSignature = String.Join("|", _tasks.
+            OrderBy(Function(task) task.TaskId).
+            Select(Function(task) String.Join("~", {
+                task.TaskId.ToString(CultureInfo.InvariantCulture),
+                task.DatabaseTaskId.ToString(CultureInfo.InvariantCulture),
+                task.TaskName,
+                task.StartDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                task.FinishDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                task.DurationDays.ToString("0.###", CultureInfo.InvariantCulture),
+                task.PercentComplete.ToString(CultureInfo.InvariantCulture),
+                task.Predecessors,
+                task.DependencyType,
+                task.AssignedTo,
+                task.AssignmentDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
+                task.ResourceAllocations,
+                task.DailyResourceAllocations,
+                task.ResourceHours.ToString("0.##", CultureInfo.InvariantCulture)
+            })))
+
+        Return String.Join("||", {
+            _projectName.Text.Trim(),
+            _versionNumber.Text.Trim(),
+            Convert.ToString(If(_projectSizeSelector.SelectedItem, "Small"), CultureInfo.InvariantCulture),
+            _projectType,
+            _totalProjectHours.Value.ToString("0.##", CultureInfo.InvariantCulture),
+            _resourcesNeeded.Value.ToString("0", CultureInfo.InvariantCulture),
+            _includeSaturdays.Checked.ToString(),
+            taskSignature
+        })
+    End Function
 
     Private Sub OpenProjectFile(sender As Object, e As EventArgs)
         Using dialog As New OpenFileDialog()
@@ -1116,7 +1307,11 @@ Public Class SMASchedulerForm
     End Function
 
     Private Sub ScheduleSelectionChanged(sender As Object, e As EventArgs)
-        UpdateCapacityPlanningGrid()
+        If _usageViewMode = UsageViewMode.TaskUsage Then
+            UpdateTaskUsageGrid()
+        Else
+            UpdateCapacityPlanningGrid()
+        End If
     End Sub
 
     Private Sub UpdateEmbeddedPlannerPreview()
@@ -1178,8 +1373,8 @@ Public Class SMASchedulerForm
             Dim selected = SelectedTask()
             Dim names = If(selected Is Nothing, New List(Of String)(), ResourceNamesFromAssignment(selected.AssignedTo))
             If selected Is Nothing OrElse names.Count = 0 Then
-                taskWorkspaceTitle.Text = "Capacity Planning"
-                _capacityGrid.Columns.Add(New DataGridViewTextBoxColumn With {.HeaderText = "Capacity Planning", .Width = 520, .ReadOnly = True})
+                taskWorkspaceTitle.Text = "Resource Usage"
+                _capacityGrid.Columns.Add(New DataGridViewTextBoxColumn With {.HeaderText = "Resource Usage", .Width = 520, .ReadOnly = True})
                 _capacityGrid.Rows.Add("Select resources in the Assigned To column to show available hours and edit date-wise capacity.")
                 Return
             End If
@@ -1188,7 +1383,7 @@ Public Class SMASchedulerForm
 
             Dim startDate = selected.StartDate.Date
             Dim finishDate = If(selected.FinishDate < selected.StartDate, selected.StartDate.Date, selected.FinishDate.Date)
-            taskWorkspaceTitle.Text = "Capacity Planning - " & If(startDate = finishDate, startDate.ToString("dd-MMM-yyyy"), startDate.ToString("dd-MMM-yyyy") & " to " & finishDate.ToString("dd-MMM-yyyy"))
+            taskWorkspaceTitle.Text = "Resource Usage - " & If(startDate = finishDate, startDate.ToString("dd-MMM-yyyy"), startDate.ToString("dd-MMM-yyyy") & " to " & finishDate.ToString("dd-MMM-yyyy"))
             Dim currentDate = startDate
             While currentDate <= finishDate
                 Dim column As New DataGridViewTextBoxColumn With {
@@ -1367,7 +1562,7 @@ Public Class SMASchedulerForm
         _grid.Refresh()
         _gantt.Invalidate()
         UpdateEmbeddedPlannerPreview()
-        SetStatus("Capacity edited. Click Refresh Capacity Planning to update the workbook.")
+        SetStatus("Capacity edited. Click Refresh Capacity Planning to update SQL and the live resource usage view.")
     End Sub
 
     Private Function TaskHoursOnDate(task As ScheduleTask, resourceName As String, workDate As Date) As Decimal
@@ -1586,7 +1781,11 @@ Public Class SMASchedulerForm
             _grid.Refresh()
             _gantt.Invalidate()
             UpdateSummary()
-            UpdateCapacityPlanningGrid()
+            If _usageViewMode = UsageViewMode.TaskUsage Then
+                UpdateTaskUsageGrid()
+            Else
+                UpdateCapacityPlanningGrid()
+            End If
             UpdateEmbeddedPlannerPreview()
             SetStatus(message)
         Finally
@@ -1728,6 +1927,41 @@ Public Class SMASchedulerForm
 
     End Sub
 
+End Class
+
+Public Class TaskUsageRow
+    Public Property TaskIdText As String = ""
+    Public Property TaskName As String = ""
+    Public Property StartDateText As String = ""
+    Public Property FinishDateText As String = ""
+    Public Property DurationText As String = ""
+    Public Property ResourceHoursText As String = ""
+    Public Property AssignedTo As String = ""
+    Public Property Predecessors As String = ""
+
+    Public Shared Function FromTask(task As ScheduleTask) As TaskUsageRow
+        Return New TaskUsageRow With {
+            .TaskIdText = task.TaskId.ToString(CultureInfo.InvariantCulture),
+            .TaskName = task.TaskName,
+            .StartDateText = task.StartDate.ToString("dd-MMM-yyyy", CultureInfo.InvariantCulture),
+            .FinishDateText = task.FinishDate.ToString("dd-MMM-yyyy", CultureInfo.InvariantCulture),
+            .DurationText = task.DurationDays.ToString("0.###", CultureInfo.InvariantCulture),
+            .ResourceHoursText = task.ResourceHours.ToString("0.##", CultureInfo.InvariantCulture),
+            .AssignedTo = task.AssignedTo,
+            .Predecessors = FormatPredecessors(task)
+        }
+    End Function
+
+    Private Shared Function FormatPredecessors(task As ScheduleTask) As String
+        Dim value = If(task.Predecessors, "").Trim()
+        If value.Length = 0 Then
+            Return ""
+        End If
+        If value.Any(Function(ch) Char.IsLetter(ch)) Then
+            Return value.ToUpperInvariant()
+        End If
+        Return value & task.DependencyType
+    End Function
 End Class
 
 Public NotInheritable Class SchedulerThemePreferences

@@ -261,6 +261,7 @@ Public Class ProjectLibraryService
 End Class
 
 Public Class ProjectLibraryItem
+    Public Property ProjectId As Integer
     Public Property ProjectName As String = ""
     Public Property VersionNumber As String = ""
     Public Property ProjectSize As String = ""

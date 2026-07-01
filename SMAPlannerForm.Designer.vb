@@ -45,6 +45,7 @@ Partial Class SMAPlannerForm
         feedbackProjectsCountLabel = New Label()
         feedbackProjectsLabel = New Label()
         _status = New Label()
+        idColumn = New DataGridViewTextBoxColumn()
         projectColumn = New DataGridViewTextBoxColumn()
         versionColumn = New DataGridViewTextBoxColumn()
         sizeColumn = New DataGridViewTextBoxColumn()
@@ -213,7 +214,7 @@ Partial Class SMAPlannerForm
         _grid.BackgroundColor = Color.White
         _grid.BorderStyle = BorderStyle.None
         _grid.ColumnHeadersHeight = 34
-        _grid.Columns.AddRange(New DataGridViewColumn() {projectColumn, versionColumn, sizeColumn, tasksColumn, hoursColumn, startColumn, finishColumn, updatedColumn})
+        _grid.Columns.AddRange(New DataGridViewColumn() {idColumn, projectColumn, versionColumn, sizeColumn, tasksColumn, hoursColumn, startColumn, finishColumn, updatedColumn})
         _grid.Dock = DockStyle.Fill
         _grid.EnableHeadersVisualStyles = False
         _grid.GridColor = Color.FromArgb(CByte(232), CByte(236), CByte(242))
@@ -402,6 +403,16 @@ Partial Class SMAPlannerForm
         _status.Size = New Size(1132, 28)
         _status.TabIndex = 2
         ' 
+        ' 
+        ' idColumn
+        ' 
+        idColumn.DataPropertyName = "ProjectId"
+        idColumn.HeaderText = "ID"
+        idColumn.MinimumWidth = 6
+        idColumn.Name = "idColumn"
+        idColumn.ReadOnly = True
+        idColumn.Width = 70
+        ' 
         ' projectColumn
         ' 
         projectColumn.DataPropertyName = "ProjectName"
@@ -527,6 +538,7 @@ Partial Class SMAPlannerForm
     Private feedbackProjectsCountLabel As Label
     Private feedbackProjectsLabel As Label
     Private _status As Label
+    Private idColumn As DataGridViewTextBoxColumn
     Private projectColumn As DataGridViewTextBoxColumn
     Private versionColumn As DataGridViewTextBoxColumn
     Private sizeColumn As DataGridViewTextBoxColumn

@@ -19,9 +19,10 @@ Partial Class SMASchedulerForm
     Private Sub InitializeComponent()
         commandBar = New ToolStrip()
         btnNew = New ToolStripButton()
-        btnOpen = New ToolStripButton()
         btnSave = New ToolStripButton()
         btnRefreshCapacity = New ToolStripButton()
+        btnTaskUsage = New ToolStripButton()
+        btnResourceUsage = New ToolStripButton()
         sepFile = New ToolStripSeparator()
         btnAddTask = New ToolStripButton()
         btnDelete = New ToolStripButton()
@@ -83,7 +84,7 @@ Partial Class SMASchedulerForm
         commandBar.BackColor = Color.FromArgb(CByte(35), CByte(46), CByte(66))
         commandBar.GripStyle = ToolStripGripStyle.Hidden
         commandBar.ImageScalingSize = New Size(18, 18)
-        commandBar.Items.AddRange(New ToolStripItem() {btnNew, btnOpen, btnSave, btnRefreshCapacity, sepFile, btnAddTask, btnDelete, btnMoveUp, btnMoveDown, sepTasks, btnLink, btnUnlink, btnMilestone, sepTheme, btnChangeTheme})
+        commandBar.Items.AddRange(New ToolStripItem() {btnNew, btnSave, btnRefreshCapacity, btnTaskUsage, btnResourceUsage, sepFile, btnAddTask, btnDelete, btnMoveUp, btnMoveDown, sepTasks, btnLink, btnUnlink, btnMilestone, sepTheme, btnChangeTheme})
         commandBar.Location = New Point(0, 0)
         commandBar.Name = "commandBar"
         commandBar.Padding = New Padding(11, 9, 11, 9)
@@ -97,14 +98,6 @@ Partial Class SMASchedulerForm
         btnNew.Name = "btnNew"
         btnNew.Size = New Size(43, 24)
         btnNew.Text = "New"
-        ' 
-        ' btnOpen
-        ' 
-        btnOpen.DisplayStyle = ToolStripItemDisplayStyle.Text
-        btnOpen.ForeColor = Color.White
-        btnOpen.Name = "btnOpen"
-        btnOpen.Size = New Size(49, 24)
-        btnOpen.Text = "Open"
         ' 
         ' btnSave
         ' 
@@ -121,6 +114,22 @@ Partial Class SMASchedulerForm
         btnRefreshCapacity.Name = "btnRefreshCapacity"
         btnRefreshCapacity.Size = New Size(184, 24)
         btnRefreshCapacity.Text = "Refresh Capacity Planning"
+        ' 
+        ' btnTaskUsage
+        ' 
+        btnTaskUsage.DisplayStyle = ToolStripItemDisplayStyle.Text
+        btnTaskUsage.ForeColor = Color.White
+        btnTaskUsage.Name = "btnTaskUsage"
+        btnTaskUsage.Size = New Size(84, 24)
+        btnTaskUsage.Text = "Task Usage"
+        ' 
+        ' btnResourceUsage
+        ' 
+        btnResourceUsage.DisplayStyle = ToolStripItemDisplayStyle.Text
+        btnResourceUsage.ForeColor = Color.White
+        btnResourceUsage.Name = "btnResourceUsage"
+        btnResourceUsage.Size = New Size(112, 24)
+        btnResourceUsage.Text = "Resource Usage"
         ' 
         ' sepFile
         ' 
@@ -582,9 +591,10 @@ Partial Class SMASchedulerForm
 
     Private commandBar As ToolStrip
     Private btnNew As ToolStripButton
-    Private btnOpen As ToolStripButton
     Private btnSave As ToolStripButton
     Private btnRefreshCapacity As ToolStripButton
+    Private btnTaskUsage As ToolStripButton
+    Private btnResourceUsage As ToolStripButton
     Private sepFile As ToolStripSeparator
     Private btnAddTask As ToolStripButton
     Private btnDelete As ToolStripButton

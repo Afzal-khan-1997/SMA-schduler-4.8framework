@@ -35,6 +35,7 @@
     <NoWarn>42016,41999,42017,42018,42019,42032,42036,42353,42354,42355</NoWarn>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="System.Configuration" />
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Data" />
@@ -91,6 +92,7 @@
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>
+    <None Include="App.config" />
     <None Include="README.md" />
     <None Include="schema.sql" />
   </ItemGroup>

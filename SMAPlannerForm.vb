@@ -1,4 +1,5 @@
 Imports System.ComponentModel
+Imports System.Configuration
 Imports System.Globalization
 
 Public Class SMAPlannerForm
@@ -6,6 +7,7 @@ Public Class SMAPlannerForm
 
     Private ReadOnly _projectLibrary As New ProjectLibraryService()
     Private ReadOnly _liveProjectCatalog As New LiveProjectCatalogService()
+    Private ReadOnly _sqlRepository As SqlProjectRepository = CreateSqlRepository()
     Private ReadOnly _projects As New BindingList(Of ProjectLibraryItem)()
     Private ReadOnly _liveProjects As New BindingList(Of LiveProjectItem)()
     Private _currentTheme As SchedulerThemePalette = SchedulerThemePalette.ThemeByName(SchedulerThemePreferences.LoadThemeName())
@@ -37,6 +39,28 @@ Public Class SMAPlannerForm
         AddHandler _grid.CellDoubleClick, AddressOf OpenSelectedExistingProject
         AddHandler Activated, AddressOf PlannerActivated
     End Sub
+
+    Private Shared Function CreateSqlRepository() As SqlProjectRepository
+        Dim connectionString = ""
+
+        Try
+            Dim settings = ConfigurationManager.ConnectionStrings("SmaSchedulerDb")
+            If settings IsNot Nothing Then
+                connectionString = settings.ConnectionString
+            End If
+        Catch ex As ConfigurationErrorsException
+        End Try
+
+        If String.IsNullOrWhiteSpace(connectionString) Then
+            connectionString = Environment.GetEnvironmentVariable("SMA_SCHEDULER_SQL_CONNECTION")
+        End If
+
+        If String.IsNullOrWhiteSpace(connectionString) Then
+            Return Nothing
+        End If
+
+        Return New SqlProjectRepository(connectionString)
+    End Function
 
     Private Sub PlannerActivated(sender As Object, e As EventArgs)
         ApplyCurrentTheme()
@@ -121,11 +145,30 @@ Public Class SMAPlannerForm
 
     Private Sub LoadProjectList()
         _projects.Clear()
-        For Each project In _projectLibrary.ListProjects()
-            _projects.Add(project)
-        Next
+        Dim loadedFromSql = False
 
-        _status.Text = _projects.Count.ToString(CultureInfo.InvariantCulture) & " planned project(s). Double-click a project to update its schedule."
+        If _sqlRepository IsNot Nothing Then
+            Try
+                For Each project In _sqlRepository.ListProjects()
+                    _projects.Add(project)
+                Next
+                loadedFromSql = True
+            Catch ex As Exception
+                SetPlannerStatus("SQL project list could not be loaded. Showing local backups.")
+            End Try
+        End If
+
+        If Not loadedFromSql Then
+            For Each project In _projectLibrary.ListProjects()
+                _projects.Add(project)
+            Next
+        End If
+
+        If loadedFromSql Then
+            _status.Text = _projects.Count.ToString(CultureInfo.InvariantCulture) & " recent scheduled project(s) loaded from SQL. Double-click a project to update its schedule."
+        Else
+            _status.Text = _projects.Count.ToString(CultureInfo.InvariantCulture) & " planned project(s). Double-click a project to update its schedule."
+        End If
         UpdatePlanningSummary()
     End Sub
 
@@ -206,7 +249,20 @@ Public Class SMAPlannerForm
             Return
         End If
 
-        Dim snapshot = _projectLibrary.LoadSnapshot(item.FilePath)
+        Dim snapshot As ProjectSnapshot = Nothing
+
+        If _sqlRepository IsNot Nothing AndAlso item.ProjectId > 0 Then
+            Try
+                snapshot = _sqlRepository.LoadProjectSnapshot(item.ProjectId)
+            Catch ex As Exception
+                SetPlannerStatus("SQL project load failed. Trying local backup.")
+            End Try
+        End If
+
+        If snapshot Is Nothing AndAlso Not String.IsNullOrWhiteSpace(item.FilePath) Then
+            snapshot = _projectLibrary.LoadSnapshot(item.FilePath)
+        End If
+
         If snapshot Is Nothing Then
             MessageBox.Show(Me, "This planned project could not be opened.", "Open Project", MessageBoxButtons.OK, MessageBoxIcon.Warning)
             LoadProjectList()
@@ -219,5 +275,13 @@ Public Class SMAPlannerForm
         End Using
         ApplyCurrentTheme()
         LoadProjectList()
+    End Sub
+
+    Private Sub SetPlannerStatus(message As String)
+        If String.IsNullOrWhiteSpace(message) Then
+            Return
+        End If
+
+        _status.Text = message
     End Sub
 End Class
