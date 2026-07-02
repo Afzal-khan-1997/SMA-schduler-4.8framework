@@ -6,15 +6,53 @@ Public Class LiveProjectCatalogService
     Public Sub New()
         ' SQL connection will replace this seed list later. The form and scheduler already use this service boundary.
         _projects = New List(Of LiveProjectItem) From {
-            CreateSmaNewProjectTemplate(),
-            New LiveProjectItem With {.ProjectCode = "TPL-BRE-ROL", .ProjectName = "SMA BRE/ROL Update", .ClientName = "Template", .VersionNumber = "1.0", .ProjectSize = "Small", .TemplateName = "BRE/ROL Update template"},
-            New LiveProjectItem With {.ProjectCode = "TPL-BRE-WITHIN", .ProjectName = "SMA BRE Within Update", .ClientName = "Template", .VersionNumber = "1.0", .ProjectSize = "Small", .TemplateName = "BRE Within Update"},
-            New LiveProjectItem With {.ProjectCode = "TPL-FEEDBACK", .ProjectName = "SMA Feedback update", .ClientName = "Template", .VersionNumber = "1.0", .ProjectSize = "Small", .TemplateName = "Feedback Change"}
+            CreateSmaBreProjectTemplate(),
+            CreateSmaRolProjectTemplate(),
+            CreateSmaWithinProjectTemplate(),
+            New LiveProjectItem With {.ProjectCode = "TPL-BRE-ROL", .ProjectName = "SMA BRE/ROL Update", .ClientName = "Template", .VersionNumber = "1.0", .ProjectSize = "Small", .TemplateName = "BRE/ROL Update template", .ProjectType = "Update"},
+            New LiveProjectItem With {.ProjectCode = "TPL-BRE-WITHIN", .ProjectName = "SMA BRE Within Update", .ClientName = "Template", .VersionNumber = "1.0", .ProjectSize = "Small", .TemplateName = "BRE Within Update", .ProjectType = "Update"},
+            New LiveProjectItem With {.ProjectCode = "TPL-FEEDBACK", .ProjectName = "SMA Feedback update", .ClientName = "Template", .VersionNumber = "1.0", .ProjectSize = "Small", .TemplateName = "Feedback Change", .ProjectType = "Feedback"}
         }
     End Sub
 
     Public Shared Function CreateSmaNewProjectTemplate() As LiveProjectItem
-        Return New LiveProjectItem With {.ProjectCode = "TPL-NEW", .ProjectName = "SMA New Project", .ClientName = "Template", .VersionNumber = "1.0", .ProjectSize = "Small", .TemplateName = "SMA New Project"}
+        Return CreateSmaBreProjectTemplate()
+    End Function
+
+    Public Shared Function CreateSmaBreProjectTemplate() As LiveProjectItem
+        Return New LiveProjectItem With {
+            .ProjectCode = "TPL-NEW-BRE",
+            .ProjectName = "SMA - BRE Project",
+            .ClientName = "Template",
+            .VersionNumber = "1.0",
+            .ProjectSize = "Small",
+            .TemplateName = "SMA New Project",
+            .ProjectType = "New"
+        }
+    End Function
+
+    Public Shared Function CreateSmaRolProjectTemplate() As LiveProjectItem
+        Return New LiveProjectItem With {
+            .ProjectCode = "TPL-NEW-ROL",
+            .ProjectName = "SMA - ROL Project",
+            .ClientName = "Template",
+            .VersionNumber = "1.0",
+            .ProjectSize = "Small",
+            .TemplateName = "SMA New Project",
+            .ProjectType = "New"
+        }
+    End Function
+
+    Public Shared Function CreateSmaWithinProjectTemplate() As LiveProjectItem
+        Return New LiveProjectItem With {
+            .ProjectCode = "TPL-NEW-WITHIN",
+            .ProjectName = "SMA - Within Project",
+            .ClientName = "Template",
+            .VersionNumber = "1.0",
+            .ProjectSize = "Small",
+            .TemplateName = "SMA New Project",
+            .ProjectType = "New"
+        }
     End Function
 
     Public Function SearchProjects(searchText As String) As List(Of LiveProjectItem)
@@ -42,6 +80,7 @@ Public Class LiveProjectItem
     Public Property VersionNumber As String = "1.0"
     Public Property ProjectSize As String = "Small"
     Public Property TemplateName As String = "New Project"
+    Public Property ProjectType As String = "New"
 
     Public ReadOnly Property DisplayText As String
         Get

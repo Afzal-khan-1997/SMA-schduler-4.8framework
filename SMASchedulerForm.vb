@@ -19,7 +19,13 @@ Public Class SMASchedulerForm
     Private _capacityGrid As DataGridView
     Private _taskUsageGrid As DataGridView
     Private _resourceUsageGrid As DataGridView
+    Private _resourceUtilizationGrid As DataGridView
     Private _plannerLegendGrid As DataGridView
+    Private _resourceUtilizationRefreshButton As Button
+    Private _resourceUtilizationColorSelector As ComboBox
+    Private _resourceUtilizationApplyButton As Button
+    Private _resourceUtilizationClearButton As Button
+    Private _resourceUtilizationMailButton As Button
     Private ReadOnly _plannerPieCharts As New List(Of PlannerPieChartPanel)
     Private ReadOnly _plannerTaskCountLabels As New List(Of Label)
     Private ReadOnly _plannerDurationLabels As New List(Of Label)
@@ -28,6 +34,11 @@ Public Class SMASchedulerForm
     Private ReadOnly _capacityDateColumns As New Dictionary(Of Integer, Date)
     Private ReadOnly _taskViewDateColumns As New Dictionary(Of Integer, Date)
     Private ReadOnly _resourceUsageDateColumns As New Dictionary(Of Integer, Date)
+    Private ReadOnly _resourceUtilizationDateColumns As New Dictionary(Of Integer, Date)
+    Private ReadOnly _resourceAvailabilityCache As New Dictionary(Of String, Dictionary(Of Date, Decimal))(StringComparer.OrdinalIgnoreCase)
+    Private ReadOnly _resourceUtilizationOverrides As New Dictionary(Of String, Decimal)(StringComparer.OrdinalIgnoreCase)
+    Private ReadOnly _resourceUtilizationHighlights As New Dictionary(Of String, Color)(StringComparer.OrdinalIgnoreCase)
+    Private ReadOnly _explicitTaskUsageEdits As New HashSet(Of String)(StringComparer.OrdinalIgnoreCase)
     Private _isRecalculating As Boolean
     Private _isRefreshingWorkspace As Boolean
     Private _isLoadingCatalogControls As Boolean
@@ -35,6 +46,7 @@ Public Class SMASchedulerForm
     Private _isLoadingCapacityGrid As Boolean
     Private _isLoadingTaskViewGrid As Boolean
     Private _isLoadingResourceUsageGrid As Boolean
+    Private _isLoadingResourceUtilizationGrid As Boolean
     Private _workspaceRefreshQueued As Boolean
     Private _lastSavedSignature As String = ""
 
@@ -81,7 +93,7 @@ Public Class SMASchedulerForm
         ClearProjectForNewSchedule()
         _projectName.Text = If(String.IsNullOrWhiteSpace(liveProject.ProjectName), "SMA Scheduler", liveProject.ProjectName.Trim())
         _versionNumber.Text = If(String.IsNullOrWhiteSpace(liveProject.VersionNumber), "1.0", liveProject.VersionNumber.Trim())
-        _projectType = ProjectTypeFromTemplate(liveProject.TemplateName, liveProject.ProjectName)
+        _projectType = If(String.IsNullOrWhiteSpace(liveProject.ProjectType), ProjectTypeFromTemplate(liveProject.TemplateName, liveProject.ProjectName), liveProject.ProjectType)
         SelectProjectSize(liveProject.ProjectSize)
 
         Dim projectSize = CStr(_projectSizeSelector.SelectedItem)
@@ -97,6 +109,7 @@ Public Class SMASchedulerForm
             Return
         End If
 
+        ResetWorkspaceTransientState()
         _tasks.Clear()
         _projectName.Text = snapshot.ProjectName
         _versionNumber.Text = If(String.IsNullOrWhiteSpace(snapshot.VersionNumber), "1.0", snapshot.VersionNumber)
@@ -258,8 +271,31 @@ Public Class SMASchedulerForm
         If _resourceUsageGrid IsNot Nothing Then
             ApplyGridTheme(_resourceUsageGrid, theme)
         End If
+        If _resourceUtilizationGrid IsNot Nothing Then
+            ApplyGridTheme(_resourceUtilizationGrid, theme)
+        End If
         If _plannerLegendGrid IsNot Nothing Then
             ApplyGridTheme(_plannerLegendGrid, theme)
+        End If
+        If _resourceUtilizationRefreshButton IsNot Nothing Then
+            _resourceUtilizationRefreshButton.BackColor = theme.CommandBack
+            _resourceUtilizationRefreshButton.ForeColor = Color.White
+        End If
+        If _resourceUtilizationApplyButton IsNot Nothing Then
+            _resourceUtilizationApplyButton.BackColor = theme.Action
+            _resourceUtilizationApplyButton.ForeColor = Color.White
+        End If
+        If _resourceUtilizationClearButton IsNot Nothing Then
+            _resourceUtilizationClearButton.BackColor = theme.CommandBack
+            _resourceUtilizationClearButton.ForeColor = Color.White
+        End If
+        If _resourceUtilizationMailButton IsNot Nothing Then
+            _resourceUtilizationMailButton.BackColor = theme.Action
+            _resourceUtilizationMailButton.ForeColor = Color.White
+        End If
+        If _resourceUtilizationColorSelector IsNot Nothing Then
+            _resourceUtilizationColorSelector.BackColor = theme.PanelBack
+            _resourceUtilizationColorSelector.ForeColor = theme.Text
         End If
         For Each label In _plannerTaskCountLabels.Concat(_plannerDurationLabels)
             If label IsNot Nothing Then
@@ -397,6 +433,7 @@ Public Class SMASchedulerForm
         Dim taskViewTab = BuildWorkspaceTabPage("Task Usage View")
         Dim resourceUsageTab = BuildWorkspaceTabPage("Resource Usage View")
         Dim capacityPlanningTab = BuildWorkspaceTabPage("Capacity Planning")
+        Dim resourceUtilizationTab = BuildWorkspaceTabPage("Resource Utilization")
         Dim taskAllocationHost As New Panel With {
             .Dock = DockStyle.Fill,
             .BackColor = Color.White
@@ -453,6 +490,10 @@ Public Class SMASchedulerForm
         _taskUsageGrid = BuildTaskViewGrid()
         _resourceUsageGrid = BuildResourceUsageGrid()
         _capacityGrid = BuildCapacityPlanningSummaryGrid()
+        _resourceUtilizationGrid = BuildCapacityPlanningSummaryGrid()
+        _resourceUtilizationGrid.ReadOnly = False
+        _resourceUtilizationGrid.SelectionMode = DataGridViewSelectionMode.CellSelect
+        _resourceUtilizationGrid.MultiSelect = True
         Dim taskUsagePreviewChart As PlannerPieChartPanel = Nothing
         Dim taskUsageTaskCountLabel As Label = Nothing
         Dim taskUsageDurationLabel As Label = Nothing
@@ -463,11 +504,13 @@ Public Class SMASchedulerForm
         taskViewTab.Controls.Add(BuildWorkspacePreviewSplit(_taskUsageGrid, BuildPlannerPreviewHost(taskUsagePreviewChart, taskUsageTaskCountLabel, taskUsageDurationLabel)))
         resourceUsageTab.Controls.Add(BuildWorkspacePreviewSplit(_resourceUsageGrid, BuildPlannerPreviewHost(resourceUsagePreviewChart, resourceUsageTaskCountLabel, resourceUsageDurationLabel)))
         capacityPlanningTab.Controls.Add(_capacityGrid)
+        resourceUtilizationTab.Controls.Add(BuildResourceUtilizationHost())
 
         _workspaceTabs.TabPages.Add(taskAllocationTab)
         _workspaceTabs.TabPages.Add(taskViewTab)
         _workspaceTabs.TabPages.Add(resourceUsageTab)
         _workspaceTabs.TabPages.Add(capacityPlanningTab)
+        _workspaceTabs.TabPages.Add(resourceUtilizationTab)
 
         contentSplit.Panel1.Controls.Clear()
         contentSplit.Panel1.Controls.Add(_workspaceTabs)
@@ -481,6 +524,10 @@ Public Class SMASchedulerForm
         AddHandler _resourceUsageGrid.CellParsing, AddressOf CalendarGridCellParsing
         AddHandler _resourceUsageGrid.CellEndEdit, AddressOf ResourceUsageGridCellEndEdit
         AddHandler _resourceUsageGrid.DataError, AddressOf CalendarGridDataError
+
+        AddHandler _resourceUtilizationGrid.CellParsing, AddressOf ResourceUtilizationGridCellParsing
+        AddHandler _resourceUtilizationGrid.CellEndEdit, AddressOf ResourceUtilizationGridCellEndEdit
+        AddHandler _resourceUtilizationGrid.DataError, AddressOf CalendarGridDataError
 
         RefreshWorkspaceTabs()
         LayoutTaskAllocationSurface(taskAllocationCanvas, taskAllocationSurface)
@@ -659,6 +706,83 @@ Public Class SMASchedulerForm
         Return split
     End Function
 
+    Private Function BuildResourceUtilizationHost() As Control
+        Dim host As New Panel With {
+            .Dock = DockStyle.Fill,
+            .BackColor = Color.White,
+            .Padding = New Padding(0)
+        }
+
+        Dim toolbar As New FlowLayoutPanel With {
+            .Dock = DockStyle.Top,
+            .Height = 44,
+            .Padding = New Padding(10, 8, 10, 6),
+            .BackColor = Color.White,
+            .WrapContents = False,
+            .AutoScroll = True
+        }
+
+        _resourceUtilizationRefreshButton = New Button With {
+            .Text = "Refresh SQL Hours",
+            .Width = 130,
+            .Height = 28,
+            .FlatStyle = FlatStyle.Flat,
+            .BackColor = Color.FromArgb(42, 95, 160),
+            .ForeColor = Color.White
+        }
+        _resourceUtilizationColorSelector = New ComboBox With {
+            .Width = 180,
+            .DropDownStyle = ComboBoxStyle.DropDownList
+        }
+        _resourceUtilizationColorSelector.Items.AddRange({
+            "Blue - Planned Leave",
+            "Dark Blue - Unplanned Leave",
+            "Yellow - Training",
+            "Green - Weekend Work",
+            "Orange - Pending Work",
+            "Red - Unassigned Hours"
+        })
+        If _resourceUtilizationColorSelector.Items.Count > 0 Then
+            _resourceUtilizationColorSelector.SelectedIndex = 0
+        End If
+
+        _resourceUtilizationApplyButton = New Button With {
+            .Text = "Apply Highlight",
+            .Width = 120,
+            .Height = 28,
+            .FlatStyle = FlatStyle.Flat
+        }
+        _resourceUtilizationClearButton = New Button With {
+            .Text = "Clear Highlight",
+            .Width = 120,
+            .Height = 28,
+            .FlatStyle = FlatStyle.Flat
+        }
+        _resourceUtilizationMailButton = New Button With {
+            .Text = "Send Availability Snip",
+            .Width = 160,
+            .Height = 28,
+            .FlatStyle = FlatStyle.Flat,
+            .BackColor = Color.FromArgb(34, 169, 105),
+            .ForeColor = Color.White
+        }
+
+        AddHandler _resourceUtilizationRefreshButton.Click, AddressOf RefreshResourceUtilizationTab
+        AddHandler _resourceUtilizationApplyButton.Click, AddressOf ApplyResourceUtilizationHighlight
+        AddHandler _resourceUtilizationClearButton.Click, AddressOf ClearResourceUtilizationHighlight
+        AddHandler _resourceUtilizationMailButton.Click, AddressOf SendResourceUtilizationSnip
+
+        toolbar.Controls.Add(_resourceUtilizationRefreshButton)
+        toolbar.Controls.Add(_resourceUtilizationColorSelector)
+        toolbar.Controls.Add(_resourceUtilizationApplyButton)
+        toolbar.Controls.Add(_resourceUtilizationClearButton)
+        toolbar.Controls.Add(_resourceUtilizationMailButton)
+
+        host.Controls.Add(_resourceUtilizationGrid)
+        host.Controls.Add(toolbar)
+        Return host
+    End Function
+
     Private Function BuildTaskViewGrid() As DataGridView
         Dim usageGrid As New DataGridView With {
             .AllowUserToAddRows = False,
@@ -780,10 +904,7 @@ Public Class SMASchedulerForm
                     Dim workDate = dateColumn.Value
                     Dim cell = taskRow.Cells(dateColumn.Key)
                     If IsBlockedScheduleDate(workDate) Then
-                        cell.Value = "HOLIDAY"
-                        cell.ReadOnly = True
-                        cell.Style.BackColor = Color.FromArgb(238, 240, 244)
-                        cell.Style.ForeColor = Color.DimGray
+                        StyleBlockedCell(cell)
                     Else
                         Dim totalHours = TaskTotalHoursOnDate(task, workDate)
                         cell.Value = totalHours
@@ -807,14 +928,14 @@ Public Class SMASchedulerForm
                         Dim workDate = dateColumn.Value
                         Dim cell = row.Cells(dateColumn.Key)
                         If IsBlockedScheduleDate(workDate) Then
-                            cell.Value = "HOLIDAY"
-                            cell.ReadOnly = True
-                            cell.Style.BackColor = Color.FromArgb(238, 240, 244)
-                            cell.Style.ForeColor = Color.DimGray
+                            StyleBlockedCell(cell)
                         Else
-                            cell.Value = TaskHoursOnDate(task, resourceName, workDate)
+                            Dim hours = TaskHoursOnDate(task, resourceName, workDate)
+                            cell.Value = hours
                             cell.ReadOnly = False
-                            StyleResourceTaskCell(cell, resourceName, workDate)
+                            Dim explicitEntry = _explicitTaskUsageEdits.Contains(TaskUsageEditKey(task.TaskId, resourceName, workDate))
+                            Dim availableHours = AvailableHoursForResource(resourceName, workDate, task.TaskId)
+                            StyleResourceTaskCell(cell, resourceName, workDate, explicitEntry, availableHours)
                         End If
                     Next
                 Next
@@ -904,6 +1025,7 @@ Public Class SMASchedulerForm
     End Sub
 
     Private Sub ClearProjectForNewSchedule()
+        ResetWorkspaceTransientState()
         _tasks.Clear()
         _projectType = "New"
         _projectName.Text = "SMA Scheduler"
@@ -913,6 +1035,13 @@ Public Class SMASchedulerForm
         RecalculateAndRefresh("New project created")
         ClearPlanningInputDisplays()
         MarkCurrentStateSaved()
+    End Sub
+
+    Private Sub ResetWorkspaceTransientState()
+        _explicitTaskUsageEdits.Clear()
+        _resourceUtilizationOverrides.Clear()
+        _resourceUtilizationHighlights.Clear()
+        _resourceAvailabilityCache.Clear()
     End Sub
 
     Private Sub AddTask(sender As Object, e As EventArgs)
@@ -1341,7 +1470,7 @@ Public Class SMASchedulerForm
     End Sub
 
     Private Sub CapHoursToDuration(task As ScheduleTask)
-        task.ResourceHours = ClampDecimal(task.ResourceHours, 0D, task.DurationDays * 8D)
+        task.ResourceHours = Math.Max(0D, task.ResourceHours)
     End Sub
 
     Private Function DurationFromHours(hours As Decimal) As Decimal
@@ -1398,6 +1527,25 @@ Public Class SMASchedulerForm
         End While
 
         Return Math.Max(1, dayCount)
+    End Function
+
+    Private Function WorkingDatesForTask(startDate As Date, finishDate As Date) As List(Of Date)
+        Dim dates As New List(Of Date)()
+        Dim currentDate = startDate.Date
+        Dim endDate = If(finishDate.Date < currentDate, currentDate, finishDate.Date)
+
+        While currentDate <= endDate
+            If Not IsBlockedScheduleDate(currentDate) Then
+                dates.Add(currentDate)
+            End If
+            currentDate = currentDate.AddDays(1)
+        End While
+
+        If dates.Count = 0 Then
+            dates.Add(startDate.Date)
+        End If
+
+        Return dates
     End Function
 
     Private Function IsBlockedScheduleDate(value As Date) As Boolean
@@ -1583,13 +1731,23 @@ Public Class SMASchedulerForm
 
         _isRefreshingWorkspace = True
         Try
+            Dim rangeStart As Date
+            Dim rangeFinish As Date
+            If Not TryGetProjectDateRange(rangeStart, rangeFinish) Then
+                rangeStart = Date.Today
+                rangeFinish = Date.Today
+            End If
+            RefreshResourceAvailabilityCache(rangeStart.AddDays(-5), rangeFinish)
+
             PrepareGridForRebuild(_taskUsageGrid)
             PrepareGridForRebuild(_resourceUsageGrid)
             PrepareGridForRebuild(_capacityGrid)
+            PrepareGridForRebuild(_resourceUtilizationGrid)
 
             UpdateTaskUsageGrid()
             UpdateResourceUsageGrid()
             UpdateCapacityPlanningGrid()
+            UpdateResourceUtilizationGrid()
             UpdateEmbeddedPlannerPreview()
         Finally
             _isRefreshingWorkspace = False
@@ -1723,15 +1881,13 @@ Public Class SMASchedulerForm
                 headerRow.Cells(2).Value = ""
                 For Each dateColumn In _resourceUsageDateColumns
                     Dim workDate = dateColumn.Value
-                    Dim totalHours = _tasks.Sum(Function(task) TaskHoursOnDate(task, resourceName, workDate))
+                    Dim pendingHours = PendingHoursForResource(resourceName, workDate)
                     Dim cell = headerRow.Cells(dateColumn.Key)
                     If IsBlockedScheduleDate(workDate) Then
-                        cell.Value = "HOLIDAY"
-                        cell.Style.BackColor = Color.FromArgb(238, 240, 244)
-                        cell.Style.ForeColor = Color.DimGray
+                        StyleBlockedCell(cell)
                     Else
-                        cell.Value = totalHours
-                        StyleUsageSummaryCell(cell, totalHours)
+                        cell.Value = pendingHours
+                        StylePendingHoursCell(cell, pendingHours)
                     End If
                 Next
 
@@ -1750,14 +1906,14 @@ Public Class SMASchedulerForm
                         Dim workDate = dateColumn.Value
                         Dim cell = row.Cells(dateColumn.Key)
                         If IsBlockedScheduleDate(workDate) Then
-                            cell.Value = "HOLIDAY"
-                            cell.ReadOnly = True
-                            cell.Style.BackColor = Color.FromArgb(238, 240, 244)
-                            cell.Style.ForeColor = Color.DimGray
+                            StyleBlockedCell(cell)
                         Else
-                            cell.Value = TaskHoursOnDate(task, resourceName, workDate)
+                            Dim hours = TaskHoursOnDate(task, resourceName, workDate)
+                            cell.Value = hours
                             cell.ReadOnly = False
-                            StyleResourceTaskCell(cell, resourceName, workDate)
+                            Dim explicitEntry = _explicitTaskUsageEdits.Contains(TaskUsageEditKey(task.TaskId, resourceName, workDate))
+                            Dim availableHours = AvailableHoursForResource(resourceName, workDate, task.TaskId)
+                            StyleResourceTaskCell(cell, resourceName, workDate, explicitEntry, availableHours)
                         End If
                     Next
                 Next
@@ -1808,12 +1964,9 @@ Public Class SMASchedulerForm
                     Dim workDate = dateColumn.Value
                     Dim cell = availableRow.Cells(dateColumn.Key)
                     If IsBlockedScheduleDate(workDate) Then
-                        cell.Value = "HOLIDAY"
-                        cell.Style.BackColor = Color.FromArgb(238, 240, 244)
-                        cell.Style.ForeColor = Color.DimGray
+                        StyleBlockedCell(cell)
                     Else
-                        Dim plannedHours = _tasks.Sum(Function(task) TaskHoursOnDate(task, resourceName, workDate))
-                        Dim availableHours = Math.Max(0D, 8D - plannedHours)
+                        Dim availableHours = AvailableHoursForResource(resourceName, workDate)
                         cell.Value = availableHours
                         cell.Style.BackColor = If(availableHours <= 0D, Color.FromArgb(255, 238, 200), Color.FromArgb(209, 242, 224))
                         cell.Style.ForeColor = If(availableHours <= 0D, Color.FromArgb(120, 70, 0), Color.FromArgb(22, 101, 52))
@@ -1830,7 +1983,7 @@ Public Class SMASchedulerForm
                     Dim workDate = dateColumn.Value
                     Dim cell = plannedRow.Cells(dateColumn.Key)
                     If IsBlockedScheduleDate(workDate) Then
-                        cell.Value = "HOLIDAY"
+                        StyleBlockedCell(cell)
                     Else
                         Dim plannedHours = _tasks.Sum(Function(task) TaskHoursOnDate(task, resourceName, workDate))
                         cell.Value = plannedHours
@@ -1851,9 +2004,7 @@ Public Class SMASchedulerForm
                         Dim workDate = dateColumn.Value
                         Dim cell = row.Cells(dateColumn.Key)
                         If IsBlockedScheduleDate(workDate) Then
-                            cell.Value = "HOLIDAY"
-                            cell.Style.BackColor = Color.FromArgb(238, 240, 244)
-                            cell.Style.ForeColor = Color.DimGray
+                            StyleBlockedCell(cell)
                         Else
                             cell.Value = TaskHoursOnDate(task, resourceName, workDate)
                             StyleCapacityTaskCell(cell, resourceName, workDate)
@@ -1863,6 +2014,61 @@ Public Class SMASchedulerForm
             Next
         Finally
             _isLoadingCapacityGrid = False
+        End Try
+    End Sub
+
+    Private Sub UpdateResourceUtilizationGrid()
+        If _resourceUtilizationGrid Is Nothing Then
+            Return
+        End If
+
+        _isLoadingResourceUtilizationGrid = True
+        Try
+            _resourceUtilizationDateColumns.Clear()
+            _resourceUtilizationGrid.Columns.Clear()
+            _resourceUtilizationGrid.Rows.Clear()
+
+            _resourceUtilizationGrid.Columns.Add(New DataGridViewTextBoxColumn With {.HeaderText = "Resource", .Width = 240, .ReadOnly = True, .Frozen = True})
+
+            Dim projectStart As Date
+            Dim projectFinish As Date
+            If Not TryGetProjectDateRange(projectStart, projectFinish) Then
+                projectStart = Date.Today
+                projectFinish = Date.Today
+            End If
+
+            AddDateColumns(_resourceUtilizationGrid, _resourceUtilizationDateColumns, projectStart.AddDays(-5), projectFinish)
+
+            For Each resourceName In AllKnownEmployees()
+                Dim rowIndex = _resourceUtilizationGrid.Rows.Add()
+                Dim row = _resourceUtilizationGrid.Rows(rowIndex)
+                row.Cells(0).Value = resourceName
+                row.Cells(0).ReadOnly = True
+
+                For Each dateColumn In _resourceUtilizationDateColumns
+                    Dim workDate = dateColumn.Value
+                    Dim cell = row.Cells(dateColumn.Key)
+                    If IsBlockedScheduleDate(workDate) Then
+                        StyleBlockedCell(cell)
+                    Else
+                        Dim cellKey = ResourceUtilizationCellKey(resourceName, workDate)
+                        Dim value = ResourceBaselineHours(resourceName, workDate)
+                        If _resourceUtilizationOverrides.ContainsKey(cellKey) Then
+                            value = _resourceUtilizationOverrides(cellKey)
+                        End If
+
+                        cell.Value = value
+                        cell.ReadOnly = False
+                        StyleResourceUtilizationCell(cell, value)
+
+                        If _resourceUtilizationHighlights.ContainsKey(cellKey) Then
+                            ApplyResourceUtilizationColor(cell, _resourceUtilizationHighlights(cellKey))
+                        End If
+                    End If
+                Next
+            Next
+        Finally
+            _isLoadingResourceUtilizationGrid = False
         End Try
     End Sub
 
@@ -1882,8 +2088,7 @@ Public Class SMASchedulerForm
 
     Private Sub StyleTaskViewCell(cell As DataGridViewCell, workDate As Date, task As ScheduleTask)
         If IsBlockedScheduleDate(workDate) Then
-            cell.Style.BackColor = Color.FromArgb(238, 240, 244)
-            cell.Style.ForeColor = Color.DimGray
+            StyleBlockedCell(cell)
             Return
         End If
 
@@ -1901,19 +2106,52 @@ Public Class SMASchedulerForm
         If hours > 8D Then
             cell.Style.BackColor = Color.FromArgb(255, 210, 210)
             cell.Style.ForeColor = Color.Firebrick
+            cell.Style.Font = New Font("Segoe UI", 9.0F, FontStyle.Regular)
         ElseIf hours > 0D Then
             cell.Style.BackColor = Color.FromArgb(209, 242, 224)
             cell.Style.ForeColor = Color.FromArgb(22, 101, 52)
+            cell.Style.Font = New Font("Segoe UI", 9.0F, FontStyle.Regular)
         Else
             cell.Style.BackColor = Color.FromArgb(245, 248, 252)
             cell.Style.ForeColor = Color.FromArgb(75, 85, 99)
+            cell.Style.Font = New Font("Segoe UI", 9.0F, FontStyle.Regular)
         End If
     End Sub
 
-    Private Sub StyleResourceTaskCell(cell As DataGridViewCell, resourceName As String, workDate As Date)
+    Private Sub StylePendingHoursCell(cell As DataGridViewCell, pendingHours As Decimal)
+        If pendingHours < 0D Then
+            cell.Style.BackColor = Color.FromArgb(255, 210, 210)
+            cell.Style.ForeColor = Color.Firebrick
+        ElseIf pendingHours = 0D Then
+            cell.Style.BackColor = Color.FromArgb(255, 238, 200)
+            cell.Style.ForeColor = Color.FromArgb(120, 70, 0)
+        Else
+            cell.Style.BackColor = Color.FromArgb(209, 242, 224)
+            cell.Style.ForeColor = Color.FromArgb(22, 101, 52)
+        End If
+        cell.Style.Font = New Font("Segoe UI", 9.0F, FontStyle.Regular)
+    End Sub
+
+    Private Sub StyleBlockedCell(cell As DataGridViewCell)
+        cell.Value = ""
+        cell.ReadOnly = True
+        cell.Style.BackColor = Color.FromArgb(238, 240, 244)
+        cell.Style.ForeColor = Color.DimGray
+        cell.Style.Font = New Font("Segoe UI", 9.0F, FontStyle.Italic)
+        cell.ToolTipText = "Weekend Plan is disabled for this date."
+    End Sub
+
+    Private Sub StylePlaceholderCell(cell As DataGridViewCell, availableHours As Decimal, resourceName As String, workDate As Date)
+        cell.Value = availableHours
+        cell.Style.BackColor = Color.FromArgb(247, 250, 252)
+        cell.Style.ForeColor = Color.FromArgb(156, 163, 175)
+        cell.Style.Font = New Font("Segoe UI", 9.0F, FontStyle.Italic)
+        cell.ToolTipText = resourceName & " available hours on " & workDate.ToString("dd-MMM-yyyy") & ": " & availableHours.ToString("0.##", CultureInfo.InvariantCulture)
+    End Sub
+
+    Private Sub StyleResourceTaskCell(cell As DataGridViewCell, resourceName As String, workDate As Date, explicitEntry As Boolean, availableHours As Decimal)
         If IsBlockedScheduleDate(workDate) Then
-            cell.Style.BackColor = Color.FromArgb(238, 240, 244)
-            cell.Style.ForeColor = Color.DimGray
+            StyleBlockedCell(cell)
             Return
         End If
 
@@ -1921,25 +2159,30 @@ Public Class SMASchedulerForm
         If hours > 8D Then
             cell.Style.BackColor = Color.FromArgb(255, 210, 210)
             cell.Style.ForeColor = Color.Firebrick
+            cell.Style.Font = New Font("Segoe UI", 9.0F, FontStyle.Regular)
+        ElseIf explicitEntry Then
+            cell.Style.BackColor = Color.FromArgb(224, 245, 232)
+            cell.Style.ForeColor = Color.FromArgb(34, 94, 74)
+            cell.Style.Font = New Font("Segoe UI", 9.0F, FontStyle.Regular)
         ElseIf hours > 0D Then
             cell.Style.BackColor = Color.FromArgb(224, 245, 232)
             cell.Style.ForeColor = Color.FromArgb(34, 94, 74)
+            cell.Style.Font = New Font("Segoe UI", 9.0F, FontStyle.Regular)
         Else
-            cell.Style.BackColor = Color.White
-            cell.Style.ForeColor = Color.FromArgb(75, 85, 99)
+            StylePlaceholderCell(cell, availableHours, resourceName, workDate)
+            Return
         End If
         cell.ToolTipText = resourceName & " on " & workDate.ToString("dd-MMM-yyyy")
     End Sub
 
     Private Sub StyleCapacityTaskCell(cell As DataGridViewCell, resourceName As String, workDate As Date)
         If IsBlockedScheduleDate(workDate) Then
-            cell.Style.BackColor = Color.FromArgb(238, 240, 244)
-            cell.Style.ForeColor = Color.DimGray
+            StyleBlockedCell(cell)
             Return
         End If
 
         Dim hours = DecimalCellValue(cell.Value)
-        Dim remaining = Math.Max(0D, 8D - hours)
+        Dim remaining = AvailableHoursForResource(resourceName, workDate)
         If hours > 8D Then
             cell.Style.BackColor = Color.FromArgb(255, 210, 210)
             cell.Style.ForeColor = Color.Firebrick
@@ -1951,6 +2194,27 @@ Public Class SMASchedulerForm
             cell.Style.ForeColor = Color.FromArgb(75, 85, 99)
         End If
         cell.ToolTipText = resourceName & " planned hours; remaining " & remaining.ToString("0.##", CultureInfo.InvariantCulture) & " hrs"
+    End Sub
+
+    Private Sub StyleResourceUtilizationCell(cell As DataGridViewCell, hours As Decimal)
+        If hours > 8D Then
+            cell.Style.BackColor = Color.FromArgb(255, 210, 210)
+            cell.Style.ForeColor = Color.Firebrick
+        ElseIf hours >= 0D Then
+            cell.Style.BackColor = Color.FromArgb(209, 242, 224)
+            cell.Style.ForeColor = Color.FromArgb(22, 101, 52)
+        Else
+            cell.Style.BackColor = Color.White
+            cell.Style.ForeColor = Color.FromArgb(75, 85, 99)
+        End If
+        cell.Style.Font = New Font("Segoe UI", 9.0F, FontStyle.Regular)
+    End Sub
+
+    Private Sub ApplyResourceUtilizationColor(cell As DataGridViewCell, fillColor As Color)
+        cell.Style.BackColor = fillColor
+        cell.Style.ForeColor = If(fillColor.GetBrightness() < 0.55F, Color.White, Color.FromArgb(24, 31, 42))
+        cell.Style.SelectionBackColor = fillColor
+        cell.Style.SelectionForeColor = cell.Style.ForeColor
     End Sub
 
     Private Function TryGetProjectDateRange(ByRef startDate As Date, ByRef finishDate As Date) As Boolean
@@ -2033,7 +2297,11 @@ Public Class SMASchedulerForm
 
         Dim resourceTag = TryCast(row.Tag, ResourceTaskRowTag)
         If resourceTag IsNot Nothing Then
+            _explicitTaskUsageEdits.Add(TaskUsageEditKey(task.TaskId, resourceTag.ResourceName, workDate))
             SetTaskResourceHoursOnDate(task, resourceTag.ResourceName, workDate, requestedHours)
+            If requestedHours > 8D Then
+                MessageBox.Show(Me, "More than 8 hours were planned for " & resourceTag.ResourceName & " on " & workDate.ToString("dd-MMM-yyyy") & ".", "Hours Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            End If
             RecalculateAndRefresh("Task usage updated")
             Return
         End If
@@ -2084,9 +2352,170 @@ Public Class SMASchedulerForm
 
         Dim workDate = _resourceUsageDateColumns(e.ColumnIndex)
         Dim requestedHours = Math.Max(0D, DecimalCellValue(row.Cells(e.ColumnIndex).Value))
+        _explicitTaskUsageEdits.Add(TaskUsageEditKey(task.TaskId, tag.ResourceName, workDate))
         SetTaskResourceHoursOnDate(task, tag.ResourceName, workDate, requestedHours)
+        If requestedHours > 8D Then
+            MessageBox.Show(Me, "More than 8 hours were planned for " & tag.ResourceName & " on " & workDate.ToString("dd-MMM-yyyy") & ".", "Hours Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+        End If
         RecalculateAndRefresh("Resource usage updated")
     End Sub
+
+    Private Sub ResourceUtilizationGridCellParsing(sender As Object, e As DataGridViewCellParsingEventArgs)
+        If _isLoadingResourceUtilizationGrid OrElse e.RowIndex < 0 OrElse e.ColumnIndex <= 0 Then
+            Return
+        End If
+
+        Dim parsedDecimal As Decimal
+        If Decimal.TryParse(Convert.ToString(e.Value, CultureInfo.CurrentCulture), NumberStyles.Number, CultureInfo.CurrentCulture, parsedDecimal) OrElse
+            Decimal.TryParse(Convert.ToString(e.Value, CultureInfo.InvariantCulture), NumberStyles.Number, CultureInfo.InvariantCulture, parsedDecimal) Then
+            e.Value = Math.Max(0D, parsedDecimal)
+            e.ParsingApplied = True
+        End If
+    End Sub
+
+    Private Sub ResourceUtilizationGridCellEndEdit(sender As Object, e As DataGridViewCellEventArgs)
+        If _isLoadingResourceUtilizationGrid OrElse e.RowIndex < 0 OrElse e.ColumnIndex <= 0 Then
+            Return
+        End If
+
+        If Not _resourceUtilizationDateColumns.ContainsKey(e.ColumnIndex) Then
+            Return
+        End If
+
+        Dim resourceName = Convert.ToString(_resourceUtilizationGrid.Rows(e.RowIndex).Cells(0).Value, CultureInfo.InvariantCulture)
+        If String.IsNullOrWhiteSpace(resourceName) Then
+            Return
+        End If
+
+        Dim workDate = _resourceUtilizationDateColumns(e.ColumnIndex)
+        Dim key = ResourceUtilizationCellKey(resourceName, workDate)
+        _resourceUtilizationOverrides(key) = Math.Max(0D, DecimalCellValue(_resourceUtilizationGrid.Rows(e.RowIndex).Cells(e.ColumnIndex).Value))
+        UpdateResourceUtilizationGrid()
+    End Sub
+
+    Private Sub RefreshResourceUtilizationTab(sender As Object, e As EventArgs)
+        _resourceUtilizationOverrides.Clear()
+        _resourceUtilizationHighlights.Clear()
+
+        Dim projectStart As Date
+        Dim projectFinish As Date
+        If Not TryGetProjectDateRange(projectStart, projectFinish) Then
+            projectStart = Date.Today
+            projectFinish = Date.Today
+        End If
+
+        RefreshResourceAvailabilityCache(projectStart.AddDays(-5), projectFinish)
+        UpdateResourceUtilizationGrid()
+        SetStatus("Resource utilization has been refreshed from SQL.")
+    End Sub
+
+    Private Sub ApplyResourceUtilizationHighlight(sender As Object, e As EventArgs)
+        If _resourceUtilizationGrid Is Nothing OrElse _resourceUtilizationGrid.SelectedCells.Count = 0 OrElse _resourceUtilizationColorSelector Is Nothing Then
+            Return
+        End If
+
+        Dim fillColor = SelectedResourceUtilizationColor()
+        For Each cell As DataGridViewCell In _resourceUtilizationGrid.SelectedCells
+            If cell.RowIndex < 0 OrElse cell.ColumnIndex <= 0 OrElse Not _resourceUtilizationDateColumns.ContainsKey(cell.ColumnIndex) Then
+                Continue For
+            End If
+
+            Dim resourceName = Convert.ToString(_resourceUtilizationGrid.Rows(cell.RowIndex).Cells(0).Value, CultureInfo.InvariantCulture)
+            If String.IsNullOrWhiteSpace(resourceName) Then
+                Continue For
+            End If
+
+            _resourceUtilizationHighlights(ResourceUtilizationCellKey(resourceName, _resourceUtilizationDateColumns(cell.ColumnIndex))) = fillColor
+        Next
+
+        UpdateResourceUtilizationGrid()
+    End Sub
+
+    Private Sub ClearResourceUtilizationHighlight(sender As Object, e As EventArgs)
+        If _resourceUtilizationGrid Is Nothing OrElse _resourceUtilizationGrid.SelectedCells.Count = 0 Then
+            Return
+        End If
+
+        For Each cell As DataGridViewCell In _resourceUtilizationGrid.SelectedCells
+            If cell.RowIndex < 0 OrElse cell.ColumnIndex <= 0 OrElse Not _resourceUtilizationDateColumns.ContainsKey(cell.ColumnIndex) Then
+                Continue For
+            End If
+
+            Dim resourceName = Convert.ToString(_resourceUtilizationGrid.Rows(cell.RowIndex).Cells(0).Value, CultureInfo.InvariantCulture)
+            If String.IsNullOrWhiteSpace(resourceName) Then
+                Continue For
+            End If
+
+            _resourceUtilizationHighlights.Remove(ResourceUtilizationCellKey(resourceName, _resourceUtilizationDateColumns(cell.ColumnIndex)))
+        Next
+
+        UpdateResourceUtilizationGrid()
+    End Sub
+
+    Private Function SelectedResourceUtilizationColor() As Color
+        Dim label = Convert.ToString(If(_resourceUtilizationColorSelector.SelectedItem, ""), CultureInfo.InvariantCulture)
+        If label.StartsWith("Dark Blue", StringComparison.OrdinalIgnoreCase) Then
+            Return Color.FromArgb(31, 78, 121)
+        End If
+        If label.StartsWith("Yellow", StringComparison.OrdinalIgnoreCase) Then
+            Return Color.FromArgb(255, 235, 59)
+        End If
+        If label.StartsWith("Green", StringComparison.OrdinalIgnoreCase) Then
+            Return Color.FromArgb(76, 175, 80)
+        End If
+        If label.StartsWith("Orange", StringComparison.OrdinalIgnoreCase) Then
+            Return Color.FromArgb(255, 152, 0)
+        End If
+        If label.StartsWith("Red", StringComparison.OrdinalIgnoreCase) Then
+            Return Color.FromArgb(244, 67, 54)
+        End If
+
+        Return Color.FromArgb(33, 150, 243)
+    End Function
+
+    Private Sub SendResourceUtilizationSnip(sender As Object, e As EventArgs)
+        If _resourceUtilizationGrid Is Nothing Then
+            Return
+        End If
+
+        Dim recipient = InputBox("Enter the mail ID for the resource availability snip.", "Send Availability Snip")
+        If String.IsNullOrWhiteSpace(recipient) Then
+            Return
+        End If
+
+        Dim snipPath = CaptureResourceUtilizationSnip()
+        If String.IsNullOrWhiteSpace(snipPath) Then
+            MessageBox.Show(Me, "The resource availability snip could not be created.", "Snip Failed", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            Return
+        End If
+
+        Try
+            Dim outlook = CreateObject("Outlook.Application")
+            Dim mail = outlook.CreateItem(0)
+            mail.To = recipient.Trim()
+            mail.Subject = "SMA Scheduler - Resource Availability"
+            mail.Body = "Please find the attached resource utilization snip."
+            mail.Attachments.Add(snipPath)
+            mail.Display()
+            SetStatus("Availability snip prepared for email.")
+        Catch ex As Exception
+            My.Computer.Clipboard.Clear()
+            Dim bitmap As New Bitmap(_resourceUtilizationGrid.Width, _resourceUtilizationGrid.Height)
+            _resourceUtilizationGrid.DrawToBitmap(bitmap, New Rectangle(0, 0, bitmap.Width, bitmap.Height))
+            My.Computer.Clipboard.SetImage(bitmap)
+            MessageBox.Show(Me, "Outlook could not be opened. The visible snip has been copied to the clipboard instead." & Environment.NewLine & snipPath, "Snip Ready", MessageBoxButtons.OK, MessageBoxIcon.Information)
+        End Try
+    End Sub
+
+    Private Function CaptureResourceUtilizationSnip() As String
+        Dim safeProject = MakeSafeFileName(_projectName.Text)
+        Dim filePath = Path.Combine(Path.GetTempPath(), safeProject & "-resource-utilization.png")
+        Using bitmap As New Bitmap(_resourceUtilizationGrid.Width, _resourceUtilizationGrid.Height)
+            _resourceUtilizationGrid.DrawToBitmap(bitmap, New Rectangle(0, 0, bitmap.Width, bitmap.Height))
+            bitmap.Save(filePath, System.Drawing.Imaging.ImageFormat.Png)
+        End Using
+        Return filePath
+    End Function
 
     Private Sub CalendarGridDataError(sender As Object, e As DataGridViewDataErrorEventArgs)
         e.ThrowException = False
@@ -2136,17 +2565,25 @@ Public Class SMASchedulerForm
             Return 0D
         End If
 
-        Dim previousWorkingDays = 0
-        Dim cursor = task.StartDate.Date
-        While cursor < workDate.Date
-            If Not IsBlockedScheduleDate(cursor) Then
-                previousWorkingDays += 1
-            End If
-            cursor = cursor.AddDays(1)
-        End While
+        Dim workingDates = WorkingDatesForTask(task.StartDate.Date, task.FinishDate.Date)
+        If workingDates.Count = 0 OrElse Not workingDates.Contains(workDate.Date) Then
+            Return 0D
+        End If
 
-        Dim remainingForDate = assigned(resourceName) - previousWorkingDays * 8D
-        Return ClampDecimal(remainingForDate, 0D, 8D)
+        Dim dayIndex = workingDates.FindIndex(Function(value) value = workDate.Date)
+        If dayIndex < 0 Then
+            Return 0D
+        End If
+
+        Dim totalHours = Math.Max(0D, assigned(resourceName))
+        Dim dailyShare = Math.Round(totalHours / workingDates.Count, 2, MidpointRounding.AwayFromZero)
+        Dim allocatedBefore = dailyShare * dayIndex
+        Dim remainingForDate = totalHours - allocatedBefore
+        If dayIndex = workingDates.Count - 1 Then
+            Return Math.Max(0D, Math.Round(remainingForDate, 2, MidpointRounding.AwayFromZero))
+        End If
+
+        Return Math.Max(0D, dailyShare)
     End Function
 
     Private Function TaskTotalHoursOnDate(task As ScheduleTask, workDate As Date) As Decimal
@@ -2181,6 +2618,65 @@ Public Class SMASchedulerForm
         Return employees
     End Function
 
+    Private Sub RefreshResourceAvailabilityCache(startDate As Date, finishDate As Date)
+        _resourceAvailabilityCache.Clear()
+
+        If _sqlRepository Is Nothing Then
+            Return
+        End If
+
+        Try
+            Dim availability = _sqlRepository.LoadResourceAvailability(startDate, finishDate)
+            For Each resourceEntry In availability
+                _resourceAvailabilityCache(resourceEntry.Key) = resourceEntry.Value
+            Next
+        Catch ex As Exception
+            SetStatus("Resource availability SQL data could not be loaded. Default daily hours are being shown.")
+        End Try
+    End Sub
+
+    Private Function ResourceBaselineHours(resourceName As String, workDate As Date) As Decimal
+        If String.IsNullOrWhiteSpace(resourceName) OrElse IsBlockedScheduleDate(workDate) Then
+            Return 0D
+        End If
+
+        Dim byDate As Dictionary(Of Date, Decimal) = Nothing
+        Dim baseline As Decimal
+        If _resourceAvailabilityCache.TryGetValue(resourceName.Trim(), byDate) AndAlso byDate IsNot Nothing AndAlso byDate.TryGetValue(workDate.Date, baseline) Then
+            Return Math.Max(0D, baseline)
+        End If
+
+        Return 8D
+    End Function
+
+    Private Function PlannedHoursForResource(resourceName As String, workDate As Date, Optional ignoredTaskId As Integer = -1) As Decimal
+        If String.IsNullOrWhiteSpace(resourceName) Then
+            Return 0D
+        End If
+
+        Return _tasks.
+            Where(Function(task) task.TaskId <> ignoredTaskId AndAlso ResourceNamesFromAssignment(task.AssignedTo).Contains(resourceName, StringComparer.OrdinalIgnoreCase)).
+            Sum(Function(task) TaskHoursOnDate(task, resourceName, workDate))
+    End Function
+
+    Private Function AvailableHoursForResource(resourceName As String, workDate As Date, Optional ignoredTaskId As Integer = -1) As Decimal
+        Dim baseline = ResourceBaselineHours(resourceName, workDate)
+        Dim planned = PlannedHoursForResource(resourceName, workDate, ignoredTaskId)
+        Return Math.Max(0D, baseline - planned)
+    End Function
+
+    Private Function PendingHoursForResource(resourceName As String, workDate As Date) As Decimal
+        Return ResourceBaselineHours(resourceName, workDate) - PlannedHoursForResource(resourceName, workDate)
+    End Function
+
+    Private Shared Function TaskUsageEditKey(taskId As Integer, resourceName As String, workDate As Date) As String
+        Return taskId.ToString(CultureInfo.InvariantCulture) & "|" & resourceName.Trim().ToUpperInvariant() & "|" & workDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+    End Function
+
+    Private Shared Function ResourceUtilizationCellKey(resourceName As String, workDate As Date) As String
+        Return resourceName.Trim().ToUpperInvariant() & "|" & workDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)
+    End Function
+
     Private Sub SetTaskTotalHoursOnDate(task As ScheduleTask, workDate As Date, totalHours As Decimal)
         If task Is Nothing OrElse IsBlockedScheduleDate(workDate) Then
             Return
@@ -2213,7 +2709,7 @@ Public Class SMASchedulerForm
                 Dim resourceName = resourceNames(index)
                 Dim ratio = If(existingTotal > 0D, existing(resourceName) / existingTotal, 1D / resourceNames.Count)
                 Dim share = If(index = resourceNames.Count - 1, remaining, Math.Round(totalHours * CDec(ratio), 2, MidpointRounding.AwayFromZero))
-                share = Math.Max(0D, Math.Min(8D, share))
+                share = Math.Max(0D, share)
                 remaining -= share
                 If share > 0D Then
                     daily(DailyAllocationKey(resourceName, workDate)) = share
@@ -2231,7 +2727,7 @@ Public Class SMASchedulerForm
 
         Dim daily = ParseDailyAllocations(task.DailyResourceAllocations)
         Dim key = DailyAllocationKey(resourceName, workDate)
-        hours = Math.Max(0D, Math.Min(8D, hours))
+        hours = Math.Max(0D, hours)
         If hours > 0D Then
             daily(key) = hours
         Else
@@ -2299,21 +2795,30 @@ Public Class SMASchedulerForm
         If _resourceUsageGrid IsNot Nothing Then
             _resourceUsageGrid.EndEdit()
         End If
+        If _resourceUtilizationGrid IsNot Nothing Then
+            _resourceUtilizationGrid.EndEdit()
+        End If
     End Sub
 
     Private Function BuildDefaultDailyAllocations(task As ScheduleTask, totals As Dictionary(Of String, Decimal)) As String
         Dim daily = New Dictionary(Of String, Decimal)(StringComparer.OrdinalIgnoreCase)
+        Dim workingDates = WorkingDatesForTask(task.StartDate.Date, task.FinishDate.Date)
+        If workingDates.Count = 0 Then
+            Return ""
+        End If
+
         For Each item In totals
             Dim remaining = Math.Max(0D, item.Value)
-            Dim workDate = task.StartDate.Date
-            While remaining > 0D
-                If Not IsBlockedScheduleDate(workDate) Then
-                    Dim hours = Math.Min(8D, remaining)
+            Dim share = Math.Round(remaining / workingDates.Count, 2, MidpointRounding.AwayFromZero)
+            For index = 0 To workingDates.Count - 1
+                Dim workDate = workingDates(index)
+                Dim hours = If(index = workingDates.Count - 1, remaining, share)
+                hours = Math.Max(0D, Math.Round(hours, 2, MidpointRounding.AwayFromZero))
+                If hours > 0D Then
                     daily(DailyAllocationKey(item.Key, workDate)) = hours
-                    remaining -= hours
                 End If
-                workDate = workDate.AddDays(1)
-            End While
+                remaining -= hours
+            Next
         Next
         Return BuildDailyAllocationsString(daily)
     End Function
@@ -2541,12 +3046,7 @@ Public Class SMASchedulerForm
             Return 0D
         End If
 
-        Dim currentProjectUsed = 8D - _xlsxExportService.RemainingHours(employeeName, currentDate.Date, _tasks, _includeSaturdays.Checked, ignoredTaskId)
-        Dim capacityWorkbookPath = CapacityPlanningWorkbookPath(New Date(currentDate.Year, currentDate.Month, 1))
-        Dim currentProjectLabel = _xlsxExportService.ProjectVersionLabel(_projectName.Text, _versionNumber.Text)
-        Dim existingExternalUsed = _xlsxExportService.AllocatedHoursFromCapacityPlanning(capacityWorkbookPath, employeeName, currentDate.Date, currentProjectLabel)
-
-        Return Math.Max(0D, 8D - currentProjectUsed - existingExternalUsed)
+        Return AvailableHoursForResource(employeeName, currentDate.Date, ignoredTaskId)
     End Function
 
     Private Sub UpdateRemainingHoursDisplay()

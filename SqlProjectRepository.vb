@@ -151,6 +151,51 @@ Public Class SqlProjectRepository
         End Using
     End Function
 
+    Public Function LoadResourceAvailability(startDate As Date, finishDate As Date) As Dictionary(Of String, Dictionary(Of Date, Decimal))
+        Dim result As New Dictionary(Of String, Dictionary(Of Date, Decimal))(StringComparer.OrdinalIgnoreCase)
+
+        Using connection = CreateConnection()
+            connection.Open()
+            EnsureSchema(connection)
+
+            Using command = connection.CreateCommand()
+                command.CommandText =
+                    "IF OBJECT_ID('dbo.SmaResourceAvailability', 'U') IS NULL " &
+                    "SELECT CAST(NULL AS NVARCHAR(200)) AS ResourceName, CAST(NULL AS DATE) AS WorkDate, CAST(NULL AS DECIMAL(12,2)) AS AvailableHours WHERE 1 = 0 " &
+                    "ELSE " &
+                    "SELECT ResourceName, WorkDate, AvailableHours FROM dbo.SmaResourceAvailability WHERE WorkDate BETWEEN @StartDate AND @FinishDate ORDER BY ResourceName, WorkDate"
+                AddParameter(command, "@StartDate", startDate.Date)
+                AddParameter(command, "@FinishDate", finishDate.Date)
+
+                Using reader = command.ExecuteReader()
+                    While reader.Read()
+                        If reader("ResourceName") Is DBNull.Value OrElse reader("WorkDate") Is DBNull.Value Then
+                            Continue While
+                        End If
+
+                        Dim resourceName = CStr(reader("ResourceName")).Trim()
+                        If resourceName.Length = 0 Then
+                            Continue While
+                        End If
+
+                        Dim workDate = CDate(reader("WorkDate")).Date
+                        Dim hours = If(reader("AvailableHours") Is DBNull.Value, 8D, CDec(reader("AvailableHours")))
+
+                        Dim byDate As Dictionary(Of Date, Decimal) = Nothing
+                        If Not result.TryGetValue(resourceName, byDate) Then
+                            byDate = New Dictionary(Of Date, Decimal)()
+                            result(resourceName) = byDate
+                        End If
+
+                        byDate(workDate) = Math.Max(0D, hours)
+                    End While
+                End Using
+            End Using
+        End Using
+
+        Return result
+    End Function
+
     Private Function LoadTasksByProjectId(connection As IDbConnection, projectId As Integer) As BindingList(Of ScheduleTask)
         Dim tasks As New BindingList(Of ScheduleTask)
         Using command = connection.CreateCommand()
@@ -221,6 +266,9 @@ Public Class SqlProjectRepository
                 Nothing)
         Execute(connection,
                 "IF OBJECT_ID('dbo.SmaScheduleTasks', 'U') IS NOT NULL AND COL_LENGTH('dbo.SmaScheduleTasks', 'DailyResourceAllocations') IS NULL ALTER TABLE dbo.SmaScheduleTasks ADD DailyResourceAllocations NVARCHAR(MAX) NULL",
+                Nothing)
+        Execute(connection,
+                "IF OBJECT_ID('dbo.SmaResourceAvailability', 'U') IS NULL CREATE TABLE dbo.SmaResourceAvailability (Id INT IDENTITY(1,1) NOT NULL PRIMARY KEY, ResourceName NVARCHAR(200) NOT NULL, WorkDate DATE NOT NULL, AvailableHours DECIMAL(12,2) NOT NULL DEFAULT 8, UpdatedAt DATETIME2 NOT NULL DEFAULT SYSUTCDATETIME(), CONSTRAINT UQ_SmaResourceAvailability UNIQUE(ResourceName, WorkDate))",
                 Nothing)
     End Sub
 
