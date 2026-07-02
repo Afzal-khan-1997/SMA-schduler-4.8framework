@@ -475,16 +475,15 @@ Public Class SMASchedulerForm
         End If
 
         Dim reservedBottomSpace As Integer
-        If availableHeight >= 640 Then
-            reservedBottomSpace = 150
+        If availableHeight >= 700 Then
+            reservedBottomSpace = 22
         ElseIf availableHeight >= 560 Then
-            reservedBottomSpace = 120
+            reservedBottomSpace = 18
         Else
-            reservedBottomSpace = 70
+            reservedBottomSpace = 14
         End If
 
         Dim desiredHeight = availableHeight - reservedBottomSpace
-        desiredHeight = Math.Min(desiredHeight, 500)
         desiredHeight = Math.Max(300, Math.Min(desiredHeight, availableHeight))
         surface.Height = desiredHeight
     End Sub
