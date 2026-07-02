@@ -70,46 +70,103 @@ Public Class SMAPlannerForm
         _currentTheme = SchedulerThemePalette.ThemeByName(SchedulerThemePreferences.LoadThemeName())
         Dim theme = _currentTheme
 
+        If theme Is Nothing OrElse IsDisposed Then
+            Return
+        End If
+
         BackColor = theme.WindowBack
-        headerPanel.BackColor = theme.HeaderBack
-        gridPanel.BackColor = theme.PanelBack
-        planningSummaryPanel.BackColor = theme.PanelBack
 
-        titleLabel.ForeColor = theme.Text
-        promptLabel.ForeColor = theme.Text
-        listTitle.ForeColor = theme.Text
-        summaryTitleLabel.ForeColor = theme.Text
-        _liveProjectSizeLabel.ForeColor = theme.Text
-        _status.ForeColor = theme.MutedText
-        For Each label In {searchLabel, selectorLabel, summaryPeriodLabel}
-            label.ForeColor = theme.MutedText
+        If ControlReady(headerPanel) Then
+            headerPanel.BackColor = theme.HeaderBack
+        End If
+
+        If ControlReady(gridPanel) Then
+            gridPanel.BackColor = theme.PanelBack
+        End If
+
+        If ControlReady(planningSummaryPanel) Then
+            planningSummaryPanel.BackColor = theme.PanelBack
+        End If
+
+        For Each label In New Label() {titleLabel, promptLabel, listTitle, summaryTitleLabel, _liveProjectSizeLabel}
+            If ControlReady(label) Then
+                label.ForeColor = theme.Text
+            End If
         Next
 
-        btnNewProject.BackColor = theme.Action
-        btnScheduleProject.BackColor = theme.Action
-        btnRefreshList.BackColor = theme.CommandBack
-        For Each button In {btnNewProject, btnScheduleProject, btnRefreshList}
-            button.ForeColor = Color.White
+        If ControlReady(_status) Then
+            _status.ForeColor = theme.MutedText
+        End If
+
+        For Each label In New Label() {searchLabel, selectorLabel, summaryPeriodLabel}
+            If ControlReady(label) Then
+                label.ForeColor = theme.MutedText
+            End If
         Next
 
-        newProjectsPanel.BackColor = theme.TileOne
-        updateProjectsPanel.BackColor = theme.TileThree
-        feedbackProjectsPanel.BackColor = theme.TileFour
-        For Each label In {newProjectsLabel, newProjectsCountLabel, updateProjectsLabel, updateProjectsCountLabel, feedbackProjectsLabel, feedbackProjectsCountLabel}
-            label.ForeColor = theme.Text
+        If ControlReady(btnNewProject) Then
+            btnNewProject.BackColor = theme.Action
+        End If
+
+        If ControlReady(btnScheduleProject) Then
+            btnScheduleProject.BackColor = theme.Action
+        End If
+
+        If ControlReady(btnRefreshList) Then
+            btnRefreshList.BackColor = theme.CommandBack
+        End If
+
+        For Each button In New Button() {btnNewProject, btnScheduleProject, btnRefreshList}
+            If ControlReady(button) Then
+                button.ForeColor = Color.White
+            End If
         Next
 
-        _grid.BackgroundColor = theme.PanelBack
-        _grid.GridColor = theme.GridLine
-        _grid.ColumnHeadersDefaultCellStyle.BackColor = theme.GridHeader
-        _grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.White
-        _grid.DefaultCellStyle.BackColor = theme.PanelBack
-        _grid.DefaultCellStyle.ForeColor = theme.Text
-        _grid.DefaultCellStyle.SelectionBackColor = theme.Selection
-        _grid.DefaultCellStyle.SelectionForeColor = theme.Text
-        _grid.AlternatingRowsDefaultCellStyle.BackColor = theme.AlternatingRow
-        _grid.EnableHeadersVisualStyles = False
+        If ControlReady(newProjectsPanel) Then
+            newProjectsPanel.BackColor = theme.TileOne
+        End If
+
+        If ControlReady(updateProjectsPanel) Then
+            updateProjectsPanel.BackColor = theme.TileThree
+        End If
+
+        If ControlReady(feedbackProjectsPanel) Then
+            feedbackProjectsPanel.BackColor = theme.TileFour
+        End If
+
+        For Each label In New Label() {newProjectsLabel, newProjectsCountLabel, updateProjectsLabel, updateProjectsCountLabel, feedbackProjectsLabel, feedbackProjectsCountLabel}
+            If ControlReady(label) Then
+                label.ForeColor = theme.Text
+            End If
+        Next
+
+        If _grid IsNot Nothing AndAlso Not _grid.IsDisposed Then
+            Dim headerStyle = If(_grid.ColumnHeadersDefaultCellStyle, New DataGridViewCellStyle())
+            Dim defaultStyle = If(_grid.DefaultCellStyle, New DataGridViewCellStyle())
+            Dim alternatingStyle = If(_grid.AlternatingRowsDefaultCellStyle, New DataGridViewCellStyle())
+
+            _grid.BackgroundColor = theme.PanelBack
+            _grid.GridColor = theme.GridLine
+
+            headerStyle.BackColor = theme.GridHeader
+            headerStyle.ForeColor = Color.White
+            _grid.ColumnHeadersDefaultCellStyle = headerStyle
+
+            defaultStyle.BackColor = theme.PanelBack
+            defaultStyle.ForeColor = theme.Text
+            defaultStyle.SelectionBackColor = theme.Selection
+            defaultStyle.SelectionForeColor = theme.Text
+            _grid.DefaultCellStyle = defaultStyle
+
+            alternatingStyle.BackColor = theme.AlternatingRow
+            _grid.AlternatingRowsDefaultCellStyle = alternatingStyle
+            _grid.EnableHeadersVisualStyles = False
+        End If
     End Sub
+
+    Private Shared Function ControlReady(control As Control) As Boolean
+        Return control IsNot Nothing AndAlso Not control.IsDisposed
+    End Function
 
     Private Sub LoadLiveProjectList()
         Dim selectedCode = SelectedLiveProject()?.ProjectCode
@@ -284,4 +341,6 @@ Public Class SMAPlannerForm
 
         _status.Text = message
     End Sub
+
+
 End Class

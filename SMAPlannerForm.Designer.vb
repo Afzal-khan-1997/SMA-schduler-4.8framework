@@ -17,497 +17,405 @@ Partial Class SMAPlannerForm
 
     <System.Diagnostics.DebuggerStepThrough()>
     Private Sub InitializeComponent()
-        headerPanel = New Panel()
-        titleLabel = New Label()
-        promptLabel = New Label()
-        btnNewProject = New Button()
-        btnRefreshList = New Button()
-        searchLabel = New Label()
-        _liveProjectSearchBox = New TextBox()
-        selectorLabel = New Label()
-        _liveProjectSelector = New ComboBox()
-        btnScheduleProject = New Button()
-        _liveProjectSizeLabel = New Label()
-        gridPanel = New Panel()
-        _grid = New DataGridView()
-        listTitle = New Label()
-        planningSummaryPanel = New Panel()
-        summaryTitleLabel = New Label()
-        summaryPeriodLabel = New Label()
-        summaryCards = New TableLayoutPanel()
-        newProjectsPanel = New Panel()
-        newProjectsCountLabel = New Label()
-        newProjectsLabel = New Label()
-        updateProjectsPanel = New Panel()
-        updateProjectsCountLabel = New Label()
-        updateProjectsLabel = New Label()
-        feedbackProjectsPanel = New Panel()
-        feedbackProjectsCountLabel = New Label()
-        feedbackProjectsLabel = New Label()
-        _status = New Label()
-        idColumn = New DataGridViewTextBoxColumn()
-        projectColumn = New DataGridViewTextBoxColumn()
-        versionColumn = New DataGridViewTextBoxColumn()
-        sizeColumn = New DataGridViewTextBoxColumn()
-        tasksColumn = New DataGridViewTextBoxColumn()
-        hoursColumn = New DataGridViewTextBoxColumn()
-        startColumn = New DataGridViewTextBoxColumn()
-        finishColumn = New DataGridViewTextBoxColumn()
-        updatedColumn = New DataGridViewTextBoxColumn()
-        headerPanel.SuspendLayout()
-        gridPanel.SuspendLayout()
-        planningSummaryPanel.SuspendLayout()
-        summaryCards.SuspendLayout()
-        newProjectsPanel.SuspendLayout()
-        updateProjectsPanel.SuspendLayout()
-        feedbackProjectsPanel.SuspendLayout()
-        CType(_grid, ComponentModel.ISupportInitialize).BeginInit()
-        SuspendLayout()
-        ' 
-        ' headerPanel
-        ' 
-        headerPanel.BackColor = Color.FromArgb(CByte(229), CByte(241), CByte(255))
-        headerPanel.Controls.Add(titleLabel)
-        headerPanel.Controls.Add(promptLabel)
-        headerPanel.Controls.Add(btnNewProject)
-        headerPanel.Controls.Add(btnRefreshList)
-        headerPanel.Controls.Add(searchLabel)
-        headerPanel.Controls.Add(_liveProjectSearchBox)
-        headerPanel.Controls.Add(selectorLabel)
-        headerPanel.Controls.Add(_liveProjectSelector)
-        headerPanel.Controls.Add(btnScheduleProject)
-        headerPanel.Controls.Add(_liveProjectSizeLabel)
-        headerPanel.Dock = DockStyle.Top
-        headerPanel.Location = New Point(0, 0)
-        headerPanel.Name = "headerPanel"
-        headerPanel.Padding = New Padding(24, 18, 24, 18)
-        headerPanel.Size = New Size(1180, 220)
-        headerPanel.TabIndex = 0
-        ' 
-        ' titleLabel
-        ' 
-        titleLabel.AutoSize = True
-        titleLabel.Font = New Font("Segoe UI Semibold", 20.0F)
-        titleLabel.ForeColor = Color.FromArgb(CByte(24), CByte(31), CByte(42))
-        titleLabel.Location = New Point(24, 18)
-        titleLabel.Name = "titleLabel"
-        titleLabel.Size = New Size(185, 46)
-        titleLabel.TabIndex = 0
-        titleLabel.Text = "SMA Planner"
-        ' 
-        ' promptLabel
-        ' 
-        promptLabel.AutoSize = True
-        promptLabel.Font = New Font("Segoe UI Semibold", 11.0F)
-        promptLabel.ForeColor = Color.FromArgb(CByte(37), CByte(47), CByte(63))
-        promptLabel.Location = New Point(26, 76)
-        promptLabel.Name = "promptLabel"
-        promptLabel.Size = New Size(340, 25)
-        promptLabel.TabIndex = 1
-        promptLabel.Text = "Do you want to plan for a new project?"
-        ' 
-        ' btnNewProject
-        ' 
-        btnNewProject.BackColor = Color.FromArgb(CByte(45), CByte(125), CByte(221))
-        btnNewProject.FlatAppearance.BorderSize = 0
-        btnNewProject.FlatStyle = FlatStyle.Flat
-        btnNewProject.ForeColor = Color.White
-        btnNewProject.Location = New Point(390, 70)
-        btnNewProject.Name = "btnNewProject"
-        btnNewProject.Size = New Size(140, 34)
-        btnNewProject.TabIndex = 2
-        btnNewProject.Text = "New Project"
-        btnNewProject.UseVisualStyleBackColor = False
-        ' 
-        ' btnRefreshList
-        ' 
-        btnRefreshList.BackColor = Color.FromArgb(CByte(35), CByte(46), CByte(66))
-        btnRefreshList.FlatAppearance.BorderSize = 0
-        btnRefreshList.FlatStyle = FlatStyle.Flat
-        btnRefreshList.ForeColor = Color.White
-        btnRefreshList.Location = New Point(546, 70)
-        btnRefreshList.Name = "btnRefreshList"
-        btnRefreshList.Size = New Size(120, 34)
-        btnRefreshList.TabIndex = 3
-        btnRefreshList.Text = "Refresh List"
-        btnRefreshList.UseVisualStyleBackColor = False
-        ' 
-        ' searchLabel
-        ' 
-        searchLabel.AutoSize = True
-        searchLabel.ForeColor = Color.FromArgb(CByte(75), CByte(85), CByte(99))
-        searchLabel.Location = New Point(26, 120)
-        searchLabel.Name = "searchLabel"
-        searchLabel.Size = New Size(107, 20)
-        searchLabel.TabIndex = 4
-        searchLabel.Text = "Search Projects"
-        ' 
-        ' _liveProjectSearchBox
-        ' 
-        _liveProjectSearchBox.Location = New Point(26, 144)
-        _liveProjectSearchBox.Name = "_liveProjectSearchBox"
-        _liveProjectSearchBox.Size = New Size(290, 27)
-        _liveProjectSearchBox.TabIndex = 5
-        ' 
-        ' selectorLabel
-        ' 
-        selectorLabel.AutoSize = True
-        selectorLabel.ForeColor = Color.FromArgb(CByte(75), CByte(85), CByte(99))
-        selectorLabel.Location = New Point(336, 120)
-        selectorLabel.Name = "selectorLabel"
-        selectorLabel.Size = New Size(88, 20)
-        selectorLabel.TabIndex = 6
-        selectorLabel.Text = "Live Project"
-        ' 
-        ' _liveProjectSelector
-        ' 
-        _liveProjectSelector.DropDownStyle = ComboBoxStyle.DropDownList
-        _liveProjectSelector.FormattingEnabled = True
-        _liveProjectSelector.Location = New Point(336, 144)
-        _liveProjectSelector.Name = "_liveProjectSelector"
-        _liveProjectSelector.Size = New Size(360, 28)
-        _liveProjectSelector.TabIndex = 7
-        ' 
-        ' btnScheduleProject
-        ' 
-        btnScheduleProject.BackColor = Color.FromArgb(CByte(32), CByte(164), CByte(112))
-        btnScheduleProject.FlatAppearance.BorderSize = 0
-        btnScheduleProject.FlatStyle = FlatStyle.Flat
-        btnScheduleProject.ForeColor = Color.White
-        btnScheduleProject.Location = New Point(716, 140)
-        btnScheduleProject.Name = "btnScheduleProject"
-        btnScheduleProject.Size = New Size(150, 34)
-        btnScheduleProject.TabIndex = 8
-        btnScheduleProject.Text = "Schedule Project"
-        btnScheduleProject.UseVisualStyleBackColor = False
-        ' 
-        ' _liveProjectSizeLabel
-        ' 
-        _liveProjectSizeLabel.Font = New Font("Segoe UI Semibold", 9.0F)
-        _liveProjectSizeLabel.ForeColor = Color.FromArgb(CByte(24), CByte(31), CByte(42))
-        _liveProjectSizeLabel.Location = New Point(868, 140)
-        _liveProjectSizeLabel.Name = "_liveProjectSizeLabel"
-        _liveProjectSizeLabel.Size = New Size(260, 34)
-        _liveProjectSizeLabel.TabIndex = 9
-        _liveProjectSizeLabel.Text = "Project size:"
-        _liveProjectSizeLabel.TextAlign = ContentAlignment.MiddleLeft
-        ' 
-        ' gridPanel
-        ' 
-        gridPanel.BackColor = Color.White
-        gridPanel.Controls.Add(_grid)
-        gridPanel.Controls.Add(listTitle)
-        gridPanel.Controls.Add(planningSummaryPanel)
-        gridPanel.Controls.Add(_status)
-        gridPanel.Dock = DockStyle.Fill
-        gridPanel.Location = New Point(0, 220)
-        gridPanel.Name = "gridPanel"
-        gridPanel.Padding = New Padding(24, 22, 24, 16)
-        gridPanel.Size = New Size(1180, 600)
-        gridPanel.TabIndex = 1
-        ' 
-        ' _grid
-        ' 
-        _grid.AllowUserToAddRows = False
-        _grid.AllowUserToDeleteRows = False
-        _grid.AutoGenerateColumns = False
-        _grid.BackgroundColor = Color.White
-        _grid.BorderStyle = BorderStyle.None
-        _grid.ColumnHeadersHeight = 34
-        _grid.Columns.AddRange(New DataGridViewColumn() {idColumn, projectColumn, versionColumn, sizeColumn, tasksColumn, hoursColumn, startColumn, finishColumn, updatedColumn})
-        _grid.Dock = DockStyle.Fill
-        _grid.EnableHeadersVisualStyles = False
-        _grid.GridColor = Color.FromArgb(CByte(232), CByte(236), CByte(242))
-        _grid.Location = New Point(24, 56)
-        _grid.MultiSelect = False
-        _grid.Name = "_grid"
-        _grid.ReadOnly = True
-        _grid.RowHeadersVisible = False
-        _grid.RowHeadersWidth = 51
-        _grid.SelectionMode = DataGridViewSelectionMode.FullRowSelect
-        _grid.Size = New Size(1132, 286)
-        _grid.TabIndex = 1
-        ' 
-        ' listTitle
-        ' 
-        listTitle.Dock = DockStyle.Top
-        listTitle.Font = New Font("Segoe UI Semibold", 12.0F)
-        listTitle.ForeColor = Color.FromArgb(CByte(24), CByte(31), CByte(42))
-        listTitle.Location = New Point(24, 22)
-        listTitle.Name = "listTitle"
-        listTitle.Size = New Size(1132, 34)
-        listTitle.TabIndex = 0
-        listTitle.Text = "Recent Scheduled Projects"
+        Me.headerPanel = New System.Windows.Forms.Panel()
+        Me.titleLabel = New System.Windows.Forms.Label()
+        Me.promptLabel = New System.Windows.Forms.Label()
+        Me.btnNewProject = New System.Windows.Forms.Button()
+        Me.btnRefreshList = New System.Windows.Forms.Button()
+        Me.searchLabel = New System.Windows.Forms.Label()
+        Me._liveProjectSearchBox = New System.Windows.Forms.TextBox()
+        Me.selectorLabel = New System.Windows.Forms.Label()
+        Me._liveProjectSelector = New System.Windows.Forms.ComboBox()
+        Me.btnScheduleProject = New System.Windows.Forms.Button()
+        Me._liveProjectSizeLabel = New System.Windows.Forms.Label()
+        Me.gridPanel = New System.Windows.Forms.Panel()
+        Me._grid = New System.Windows.Forms.DataGridView()
+        Me.listTitle = New System.Windows.Forms.Label()
+        Me.planningSummaryPanel = New System.Windows.Forms.Panel()
+        Me.summaryCards = New System.Windows.Forms.TableLayoutPanel()
+        Me.newProjectsPanel = New System.Windows.Forms.Panel()
+        Me.newProjectsCountLabel = New System.Windows.Forms.Label()
+        Me.newProjectsLabel = New System.Windows.Forms.Label()
+        Me.updateProjectsPanel = New System.Windows.Forms.Panel()
+        Me.updateProjectsCountLabel = New System.Windows.Forms.Label()
+        Me.updateProjectsLabel = New System.Windows.Forms.Label()
+        Me.feedbackProjectsPanel = New System.Windows.Forms.Panel()
+        Me.feedbackProjectsCountLabel = New System.Windows.Forms.Label()
+        Me.feedbackProjectsLabel = New System.Windows.Forms.Label()
+        Me.summaryPeriodLabel = New System.Windows.Forms.Label()
+        Me.summaryTitleLabel = New System.Windows.Forms.Label()
+        Me._status = New System.Windows.Forms.Label()
+        Me.headerPanel.SuspendLayout()
+        Me.gridPanel.SuspendLayout()
+        CType(Me._grid, System.ComponentModel.ISupportInitialize).BeginInit()
+        Me.planningSummaryPanel.SuspendLayout()
+        Me.summaryCards.SuspendLayout()
+        Me.newProjectsPanel.SuspendLayout()
+        Me.updateProjectsPanel.SuspendLayout()
+        Me.feedbackProjectsPanel.SuspendLayout()
+        Me.SuspendLayout()
         '
-        ' planningSummaryPanel
+        'headerPanel
         '
-        planningSummaryPanel.Controls.Add(summaryCards)
-        planningSummaryPanel.Controls.Add(summaryPeriodLabel)
-        planningSummaryPanel.Controls.Add(summaryTitleLabel)
-        planningSummaryPanel.Dock = DockStyle.Bottom
-        planningSummaryPanel.Location = New Point(24, 342)
-        planningSummaryPanel.Name = "planningSummaryPanel"
-        planningSummaryPanel.Padding = New Padding(0, 12, 0, 8)
-        planningSummaryPanel.Size = New Size(1132, 214)
-        planningSummaryPanel.TabIndex = 2
+        Me.headerPanel.BackColor = System.Drawing.Color.FromArgb(CType(CType(229, Byte), Integer), CType(CType(241, Byte), Integer), CType(CType(255, Byte), Integer))
+        Me.headerPanel.Controls.Add(Me.titleLabel)
+        Me.headerPanel.Controls.Add(Me.promptLabel)
+        Me.headerPanel.Controls.Add(Me.btnNewProject)
+        Me.headerPanel.Controls.Add(Me.btnRefreshList)
+        Me.headerPanel.Controls.Add(Me.searchLabel)
+        Me.headerPanel.Controls.Add(Me._liveProjectSearchBox)
+        Me.headerPanel.Controls.Add(Me.selectorLabel)
+        Me.headerPanel.Controls.Add(Me._liveProjectSelector)
+        Me.headerPanel.Controls.Add(Me.btnScheduleProject)
+        Me.headerPanel.Controls.Add(Me._liveProjectSizeLabel)
+        Me.headerPanel.Dock = System.Windows.Forms.DockStyle.Top
+        Me.headerPanel.Location = New System.Drawing.Point(0, 0)
+        Me.headerPanel.Name = "headerPanel"
+        Me.headerPanel.Padding = New System.Windows.Forms.Padding(24, 18, 24, 18)
+        Me.headerPanel.Size = New System.Drawing.Size(1180, 220)
+        Me.headerPanel.TabIndex = 0
         '
-        ' summaryTitleLabel
+        'titleLabel
         '
-        summaryTitleLabel.Dock = DockStyle.Top
-        summaryTitleLabel.Font = New Font("Segoe UI Semibold", 12.0F)
-        summaryTitleLabel.ForeColor = Color.FromArgb(CByte(24), CByte(31), CByte(42))
-        summaryTitleLabel.Location = New Point(0, 12)
-        summaryTitleLabel.Name = "summaryTitleLabel"
-        summaryTitleLabel.Size = New Size(1132, 30)
-        summaryTitleLabel.TabIndex = 0
-        summaryTitleLabel.Text = "Projects Planned For This Period"
+        Me.titleLabel.AutoSize = True
+        Me.titleLabel.Font = New System.Drawing.Font("Segoe UI Semibold", 20.0!)
+        Me.titleLabel.ForeColor = System.Drawing.Color.FromArgb(CType(CType(24, Byte), Integer), CType(CType(31, Byte), Integer), CType(CType(42, Byte), Integer))
+        Me.titleLabel.Location = New System.Drawing.Point(24, 18)
+        Me.titleLabel.Name = "titleLabel"
+        Me.titleLabel.Size = New System.Drawing.Size(220, 46)
+        Me.titleLabel.TabIndex = 0
+        Me.titleLabel.Text = "SMA Planner"
         '
-        ' summaryPeriodLabel
+        'promptLabel
         '
-        summaryPeriodLabel.Dock = DockStyle.Top
-        summaryPeriodLabel.ForeColor = Color.FromArgb(CByte(75), CByte(85), CByte(99))
-        summaryPeriodLabel.Location = New Point(0, 42)
-        summaryPeriodLabel.Name = "summaryPeriodLabel"
-        summaryPeriodLabel.Size = New Size(1132, 26)
-        summaryPeriodLabel.TabIndex = 1
-        summaryPeriodLabel.Text = "20-Jun-2026 to 20-Jul-2026"
+        Me.promptLabel.AutoSize = True
+        Me.promptLabel.Font = New System.Drawing.Font("Segoe UI Semibold", 11.0!)
+        Me.promptLabel.ForeColor = System.Drawing.Color.FromArgb(CType(CType(37, Byte), Integer), CType(CType(47, Byte), Integer), CType(CType(63, Byte), Integer))
+        Me.promptLabel.Location = New System.Drawing.Point(26, 76)
+        Me.promptLabel.Name = "promptLabel"
+        Me.promptLabel.Size = New System.Drawing.Size(343, 25)
+        Me.promptLabel.TabIndex = 1
+        Me.promptLabel.Text = "Do you want to plan for a new project?"
         '
-        ' summaryCards
+        'btnNewProject
         '
-        summaryCards.ColumnCount = 3
-        summaryCards.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 33.33333F))
-        summaryCards.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 33.33333F))
-        summaryCards.ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 33.33333F))
-        summaryCards.Controls.Add(newProjectsPanel, 0, 0)
-        summaryCards.Controls.Add(updateProjectsPanel, 1, 0)
-        summaryCards.Controls.Add(feedbackProjectsPanel, 2, 0)
-        summaryCards.Dock = DockStyle.Fill
-        summaryCards.Location = New Point(0, 68)
-        summaryCards.Name = "summaryCards"
-        summaryCards.RowCount = 1
-        summaryCards.RowStyles.Add(New RowStyle(SizeType.Percent, 100.0F))
-        summaryCards.Size = New Size(1132, 138)
-        summaryCards.TabIndex = 2
+        Me.btnNewProject.BackColor = System.Drawing.Color.FromArgb(CType(CType(45, Byte), Integer), CType(CType(125, Byte), Integer), CType(CType(221, Byte), Integer))
+        Me.btnNewProject.FlatAppearance.BorderSize = 0
+        Me.btnNewProject.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+        Me.btnNewProject.ForeColor = System.Drawing.Color.White
+        Me.btnNewProject.Location = New System.Drawing.Point(390, 70)
+        Me.btnNewProject.Name = "btnNewProject"
+        Me.btnNewProject.Size = New System.Drawing.Size(140, 34)
+        Me.btnNewProject.TabIndex = 2
+        Me.btnNewProject.Text = "New Project"
+        Me.btnNewProject.UseVisualStyleBackColor = False
         '
-        ' newProjectsPanel
+        'btnRefreshList
         '
-        newProjectsPanel.BackColor = Color.FromArgb(CByte(223), CByte(245), CByte(232))
-        newProjectsPanel.Controls.Add(newProjectsCountLabel)
-        newProjectsPanel.Controls.Add(newProjectsLabel)
-        newProjectsPanel.Dock = DockStyle.Fill
-        newProjectsPanel.Location = New Point(0, 4)
-        newProjectsPanel.Margin = New Padding(0, 4, 12, 4)
-        newProjectsPanel.Name = "newProjectsPanel"
-        newProjectsPanel.Size = New Size(365, 130)
-        newProjectsPanel.TabIndex = 0
+        Me.btnRefreshList.BackColor = System.Drawing.Color.FromArgb(CType(CType(35, Byte), Integer), CType(CType(46, Byte), Integer), CType(CType(66, Byte), Integer))
+        Me.btnRefreshList.FlatAppearance.BorderSize = 0
+        Me.btnRefreshList.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+        Me.btnRefreshList.ForeColor = System.Drawing.Color.White
+        Me.btnRefreshList.Location = New System.Drawing.Point(546, 70)
+        Me.btnRefreshList.Name = "btnRefreshList"
+        Me.btnRefreshList.Size = New System.Drawing.Size(120, 34)
+        Me.btnRefreshList.TabIndex = 3
+        Me.btnRefreshList.Text = "Refresh List"
+        Me.btnRefreshList.UseVisualStyleBackColor = False
         '
-        ' newProjectsCountLabel
+        'searchLabel
         '
-        newProjectsCountLabel.Dock = DockStyle.Fill
-        newProjectsCountLabel.Font = New Font("Segoe UI Semibold", 24.0F)
-        newProjectsCountLabel.ForeColor = Color.FromArgb(CByte(24), CByte(31), CByte(42))
-        newProjectsCountLabel.Location = New Point(0, 42)
-        newProjectsCountLabel.Name = "newProjectsCountLabel"
-        newProjectsCountLabel.Size = New Size(365, 88)
-        newProjectsCountLabel.TabIndex = 1
-        newProjectsCountLabel.Text = "0"
-        newProjectsCountLabel.TextAlign = ContentAlignment.MiddleCenter
+        Me.searchLabel.AutoSize = True
+        Me.searchLabel.ForeColor = System.Drawing.Color.FromArgb(CType(CType(75, Byte), Integer), CType(CType(85, Byte), Integer), CType(CType(99, Byte), Integer))
+        Me.searchLabel.Location = New System.Drawing.Point(26, 120)
+        Me.searchLabel.Name = "searchLabel"
+        Me.searchLabel.Size = New System.Drawing.Size(109, 20)
+        Me.searchLabel.TabIndex = 4
+        Me.searchLabel.Text = "Search Projects"
         '
-        ' newProjectsLabel
+        '_liveProjectSearchBox
         '
-        newProjectsLabel.Dock = DockStyle.Top
-        newProjectsLabel.Font = New Font("Segoe UI Semibold", 10.0F)
-        newProjectsLabel.Location = New Point(0, 0)
-        newProjectsLabel.Name = "newProjectsLabel"
-        newProjectsLabel.Size = New Size(365, 42)
-        newProjectsLabel.TabIndex = 0
-        newProjectsLabel.Text = "New Projects"
-        newProjectsLabel.TextAlign = ContentAlignment.MiddleCenter
+        Me._liveProjectSearchBox.Location = New System.Drawing.Point(26, 144)
+        Me._liveProjectSearchBox.Name = "_liveProjectSearchBox"
+        Me._liveProjectSearchBox.Size = New System.Drawing.Size(290, 27)
+        Me._liveProjectSearchBox.TabIndex = 5
         '
-        ' updateProjectsPanel
+        'selectorLabel
         '
-        updateProjectsPanel.BackColor = Color.FromArgb(CByte(225), CByte(239), CByte(255))
-        updateProjectsPanel.Controls.Add(updateProjectsCountLabel)
-        updateProjectsPanel.Controls.Add(updateProjectsLabel)
-        updateProjectsPanel.Dock = DockStyle.Fill
-        updateProjectsPanel.Location = New Point(389, 4)
-        updateProjectsPanel.Margin = New Padding(12, 4, 12, 4)
-        updateProjectsPanel.Name = "updateProjectsPanel"
-        updateProjectsPanel.Size = New Size(353, 130)
-        updateProjectsPanel.TabIndex = 1
+        Me.selectorLabel.AutoSize = True
+        Me.selectorLabel.ForeColor = System.Drawing.Color.FromArgb(CType(CType(75, Byte), Integer), CType(CType(85, Byte), Integer), CType(CType(99, Byte), Integer))
+        Me.selectorLabel.Location = New System.Drawing.Point(336, 120)
+        Me.selectorLabel.Name = "selectorLabel"
+        Me.selectorLabel.Size = New System.Drawing.Size(85, 20)
+        Me.selectorLabel.TabIndex = 6
+        Me.selectorLabel.Text = "Live Project"
         '
-        ' updateProjectsCountLabel
+        '_liveProjectSelector
         '
-        updateProjectsCountLabel.Dock = DockStyle.Fill
-        updateProjectsCountLabel.Font = New Font("Segoe UI Semibold", 24.0F)
-        updateProjectsCountLabel.ForeColor = Color.FromArgb(CByte(24), CByte(31), CByte(42))
-        updateProjectsCountLabel.Location = New Point(0, 42)
-        updateProjectsCountLabel.Name = "updateProjectsCountLabel"
-        updateProjectsCountLabel.Size = New Size(353, 88)
-        updateProjectsCountLabel.TabIndex = 1
-        updateProjectsCountLabel.Text = "0"
-        updateProjectsCountLabel.TextAlign = ContentAlignment.MiddleCenter
+        Me._liveProjectSelector.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
+        Me._liveProjectSelector.FormattingEnabled = True
+        Me._liveProjectSelector.Location = New System.Drawing.Point(336, 144)
+        Me._liveProjectSelector.Name = "_liveProjectSelector"
+        Me._liveProjectSelector.Size = New System.Drawing.Size(360, 28)
+        Me._liveProjectSelector.TabIndex = 7
         '
-        ' updateProjectsLabel
+        'btnScheduleProject
         '
-        updateProjectsLabel.Dock = DockStyle.Top
-        updateProjectsLabel.Font = New Font("Segoe UI Semibold", 10.0F)
-        updateProjectsLabel.Location = New Point(0, 0)
-        updateProjectsLabel.Name = "updateProjectsLabel"
-        updateProjectsLabel.Size = New Size(353, 42)
-        updateProjectsLabel.TabIndex = 0
-        updateProjectsLabel.Text = "Update Projects"
-        updateProjectsLabel.TextAlign = ContentAlignment.MiddleCenter
+        Me.btnScheduleProject.BackColor = System.Drawing.Color.FromArgb(CType(CType(32, Byte), Integer), CType(CType(164, Byte), Integer), CType(CType(112, Byte), Integer))
+        Me.btnScheduleProject.FlatAppearance.BorderSize = 0
+        Me.btnScheduleProject.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+        Me.btnScheduleProject.ForeColor = System.Drawing.Color.White
+        Me.btnScheduleProject.Location = New System.Drawing.Point(716, 140)
+        Me.btnScheduleProject.Name = "btnScheduleProject"
+        Me.btnScheduleProject.Size = New System.Drawing.Size(150, 34)
+        Me.btnScheduleProject.TabIndex = 8
+        Me.btnScheduleProject.Text = "Schedule Project"
+        Me.btnScheduleProject.UseVisualStyleBackColor = False
         '
-        ' feedbackProjectsPanel
+        '_liveProjectSizeLabel
         '
-        feedbackProjectsPanel.BackColor = Color.FromArgb(CByte(248), CByte(222), CByte(234))
-        feedbackProjectsPanel.Controls.Add(feedbackProjectsCountLabel)
-        feedbackProjectsPanel.Controls.Add(feedbackProjectsLabel)
-        feedbackProjectsPanel.Dock = DockStyle.Fill
-        feedbackProjectsPanel.Location = New Point(766, 4)
-        feedbackProjectsPanel.Margin = New Padding(12, 4, 0, 4)
-        feedbackProjectsPanel.Name = "feedbackProjectsPanel"
-        feedbackProjectsPanel.Size = New Size(366, 130)
-        feedbackProjectsPanel.TabIndex = 2
+        Me._liveProjectSizeLabel.Font = New System.Drawing.Font("Segoe UI Semibold", 9.0!)
+        Me._liveProjectSizeLabel.ForeColor = System.Drawing.Color.FromArgb(CType(CType(24, Byte), Integer), CType(CType(31, Byte), Integer), CType(CType(42, Byte), Integer))
+        Me._liveProjectSizeLabel.Location = New System.Drawing.Point(868, 140)
+        Me._liveProjectSizeLabel.Name = "_liveProjectSizeLabel"
+        Me._liveProjectSizeLabel.Size = New System.Drawing.Size(260, 34)
+        Me._liveProjectSizeLabel.TabIndex = 9
+        Me._liveProjectSizeLabel.Text = "Project size:"
+        Me._liveProjectSizeLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
         '
-        ' feedbackProjectsCountLabel
+        'gridPanel
         '
-        feedbackProjectsCountLabel.Dock = DockStyle.Fill
-        feedbackProjectsCountLabel.Font = New Font("Segoe UI Semibold", 24.0F)
-        feedbackProjectsCountLabel.ForeColor = Color.FromArgb(CByte(24), CByte(31), CByte(42))
-        feedbackProjectsCountLabel.Location = New Point(0, 42)
-        feedbackProjectsCountLabel.Name = "feedbackProjectsCountLabel"
-        feedbackProjectsCountLabel.Size = New Size(366, 88)
-        feedbackProjectsCountLabel.TabIndex = 1
-        feedbackProjectsCountLabel.Text = "0"
-        feedbackProjectsCountLabel.TextAlign = ContentAlignment.MiddleCenter
+        Me.gridPanel.BackColor = System.Drawing.Color.White
+        Me.gridPanel.Controls.Add(Me._grid)
+        Me.gridPanel.Controls.Add(Me.listTitle)
+        Me.gridPanel.Controls.Add(Me.planningSummaryPanel)
+        Me.gridPanel.Controls.Add(Me._status)
+        Me.gridPanel.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.gridPanel.Location = New System.Drawing.Point(0, 220)
+        Me.gridPanel.Name = "gridPanel"
+        Me.gridPanel.Padding = New System.Windows.Forms.Padding(24, 22, 24, 16)
+        Me.gridPanel.Size = New System.Drawing.Size(1180, 600)
+        Me.gridPanel.TabIndex = 1
         '
-        ' feedbackProjectsLabel
+        '_grid
         '
-        feedbackProjectsLabel.Dock = DockStyle.Top
-        feedbackProjectsLabel.Font = New Font("Segoe UI Semibold", 10.0F)
-        feedbackProjectsLabel.Location = New Point(0, 0)
-        feedbackProjectsLabel.Name = "feedbackProjectsLabel"
-        feedbackProjectsLabel.Size = New Size(366, 42)
-        feedbackProjectsLabel.TabIndex = 0
-        feedbackProjectsLabel.Text = "Feedback Projects"
-        feedbackProjectsLabel.TextAlign = ContentAlignment.MiddleCenter
-        ' 
-        ' _status
-        ' 
-        _status.Dock = DockStyle.Bottom
-        _status.ForeColor = Color.DimGray
-        _status.Location = New Point(24, 556)
-        _status.Name = "_status"
-        _status.Size = New Size(1132, 28)
-        _status.TabIndex = 2
-        ' 
-        ' 
-        ' idColumn
-        ' 
-        idColumn.DataPropertyName = "ProjectId"
-        idColumn.HeaderText = "ID"
-        idColumn.MinimumWidth = 6
-        idColumn.Name = "idColumn"
-        idColumn.ReadOnly = True
-        idColumn.Width = 70
-        ' 
-        ' projectColumn
-        ' 
-        projectColumn.DataPropertyName = "ProjectName"
-        projectColumn.HeaderText = "Project"
-        projectColumn.MinimumWidth = 6
-        projectColumn.Name = "projectColumn"
-        projectColumn.ReadOnly = True
-        projectColumn.Width = 260
-        ' 
-        ' versionColumn
-        ' 
-        versionColumn.DataPropertyName = "VersionNumber"
-        versionColumn.HeaderText = "Version"
-        versionColumn.MinimumWidth = 6
-        versionColumn.Name = "versionColumn"
-        versionColumn.ReadOnly = True
-        versionColumn.Width = 90
-        ' 
-        ' sizeColumn
-        ' 
-        sizeColumn.DataPropertyName = "ProjectSize"
-        sizeColumn.HeaderText = "Size"
-        sizeColumn.MinimumWidth = 6
-        sizeColumn.Name = "sizeColumn"
-        sizeColumn.ReadOnly = True
-        sizeColumn.Width = 110
-        ' 
-        ' tasksColumn
-        ' 
-        tasksColumn.DataPropertyName = "TaskCount"
-        tasksColumn.HeaderText = "Tasks"
-        tasksColumn.MinimumWidth = 6
-        tasksColumn.Name = "tasksColumn"
-        tasksColumn.ReadOnly = True
-        tasksColumn.Width = 80
-        ' 
-        ' hoursColumn
-        ' 
-        hoursColumn.DataPropertyName = "ResourceHours"
-        hoursColumn.HeaderText = "Hours"
-        hoursColumn.MinimumWidth = 6
-        hoursColumn.Name = "hoursColumn"
-        hoursColumn.ReadOnly = True
-        hoursColumn.Width = 90
-        ' 
-        ' startColumn
-        ' 
-        startColumn.DataPropertyName = "StartDateText"
-        startColumn.HeaderText = "Start"
-        startColumn.MinimumWidth = 6
-        startColumn.Name = "startColumn"
-        startColumn.ReadOnly = True
-        startColumn.Width = 120
-        ' 
-        ' finishColumn
-        ' 
-        finishColumn.DataPropertyName = "FinishDateText"
-        finishColumn.HeaderText = "Finish"
-        finishColumn.MinimumWidth = 6
-        finishColumn.Name = "finishColumn"
-        finishColumn.ReadOnly = True
-        finishColumn.Width = 120
-        ' 
-        ' updatedColumn
-        ' 
-        updatedColumn.DataPropertyName = "UpdatedOn"
-        updatedColumn.HeaderText = "Updated"
-        updatedColumn.MinimumWidth = 6
-        updatedColumn.Name = "updatedColumn"
-        updatedColumn.ReadOnly = True
-        updatedColumn.Width = 160
-        ' 
-        ' SMAPlannerForm
-        ' 
-        AutoScaleDimensions = New SizeF(8.0F, 20.0F)
-        AutoScaleMode = AutoScaleMode.Font
-        BackColor = Color.FromArgb(CByte(244), CByte(246), CByte(249))
-        ClientSize = New Size(1180, 820)
-        Controls.Add(gridPanel)
-        Controls.Add(headerPanel)
-        Font = New Font("Segoe UI", 9.0F)
-        MinimumSize = New Size(980, 640)
-        Name = "SMAPlannerForm"
-        StartPosition = FormStartPosition.CenterScreen
-        Text = "SMA Planner"
-        headerPanel.ResumeLayout(False)
-        headerPanel.PerformLayout()
-        gridPanel.ResumeLayout(False)
-        planningSummaryPanel.ResumeLayout(False)
-        summaryCards.ResumeLayout(False)
-        newProjectsPanel.ResumeLayout(False)
-        updateProjectsPanel.ResumeLayout(False)
-        feedbackProjectsPanel.ResumeLayout(False)
-        CType(_grid, ComponentModel.ISupportInitialize).EndInit()
-        ResumeLayout(False)
+        Me._grid.AllowUserToAddRows = False
+        Me._grid.AllowUserToDeleteRows = False
+        Me._grid.BackgroundColor = System.Drawing.Color.White
+        Me._grid.BorderStyle = System.Windows.Forms.BorderStyle.None
+        Me._grid.ColumnHeadersHeight = 34
+        Me._grid.Dock = System.Windows.Forms.DockStyle.Fill
+        Me._grid.EnableHeadersVisualStyles = False
+        Me._grid.GridColor = System.Drawing.Color.FromArgb(CType(CType(232, Byte), Integer), CType(CType(236, Byte), Integer), CType(CType(242, Byte), Integer))
+        Me._grid.Location = New System.Drawing.Point(24, 56)
+        Me._grid.MultiSelect = False
+        Me._grid.Name = "_grid"
+        Me._grid.ReadOnly = True
+        Me._grid.RowHeadersVisible = False
+        Me._grid.RowHeadersWidth = 51
+        Me._grid.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect
+        Me._grid.Size = New System.Drawing.Size(1132, 286)
+        Me._grid.TabIndex = 1
+        '
+        'listTitle
+        '
+        Me.listTitle.Dock = System.Windows.Forms.DockStyle.Top
+        Me.listTitle.Font = New System.Drawing.Font("Segoe UI Semibold", 12.0!)
+        Me.listTitle.ForeColor = System.Drawing.Color.FromArgb(CType(CType(24, Byte), Integer), CType(CType(31, Byte), Integer), CType(CType(42, Byte), Integer))
+        Me.listTitle.Location = New System.Drawing.Point(24, 22)
+        Me.listTitle.Name = "listTitle"
+        Me.listTitle.Size = New System.Drawing.Size(1132, 34)
+        Me.listTitle.TabIndex = 0
+        Me.listTitle.Text = "Recent Scheduled Projects"
+        '
+        'planningSummaryPanel
+        '
+        Me.planningSummaryPanel.Controls.Add(Me.summaryCards)
+        Me.planningSummaryPanel.Controls.Add(Me.summaryPeriodLabel)
+        Me.planningSummaryPanel.Controls.Add(Me.summaryTitleLabel)
+        Me.planningSummaryPanel.Dock = System.Windows.Forms.DockStyle.Bottom
+        Me.planningSummaryPanel.Location = New System.Drawing.Point(24, 342)
+        Me.planningSummaryPanel.Name = "planningSummaryPanel"
+        Me.planningSummaryPanel.Padding = New System.Windows.Forms.Padding(0, 12, 0, 8)
+        Me.planningSummaryPanel.Size = New System.Drawing.Size(1132, 214)
+        Me.planningSummaryPanel.TabIndex = 2
+        '
+        'summaryCards
+        '
+        Me.summaryCards.ColumnCount = 3
+        Me.summaryCards.ColumnStyles.Add(New System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 33.33333!))
+        Me.summaryCards.ColumnStyles.Add(New System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 33.33333!))
+        Me.summaryCards.ColumnStyles.Add(New System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 33.33333!))
+        Me.summaryCards.Controls.Add(Me.newProjectsPanel, 0, 0)
+        Me.summaryCards.Controls.Add(Me.updateProjectsPanel, 1, 0)
+        Me.summaryCards.Controls.Add(Me.feedbackProjectsPanel, 2, 0)
+        Me.summaryCards.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.summaryCards.Location = New System.Drawing.Point(0, 68)
+        Me.summaryCards.Name = "summaryCards"
+        Me.summaryCards.RowCount = 1
+        Me.summaryCards.RowStyles.Add(New System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100.0!))
+        Me.summaryCards.Size = New System.Drawing.Size(1132, 138)
+        Me.summaryCards.TabIndex = 2
+        '
+        'newProjectsPanel
+        '
+        Me.newProjectsPanel.BackColor = System.Drawing.Color.FromArgb(CType(CType(223, Byte), Integer), CType(CType(245, Byte), Integer), CType(CType(232, Byte), Integer))
+        Me.newProjectsPanel.Controls.Add(Me.newProjectsCountLabel)
+        Me.newProjectsPanel.Controls.Add(Me.newProjectsLabel)
+        Me.newProjectsPanel.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.newProjectsPanel.Location = New System.Drawing.Point(0, 4)
+        Me.newProjectsPanel.Margin = New System.Windows.Forms.Padding(0, 4, 12, 4)
+        Me.newProjectsPanel.Name = "newProjectsPanel"
+        Me.newProjectsPanel.Size = New System.Drawing.Size(365, 130)
+        Me.newProjectsPanel.TabIndex = 0
+        '
+        'newProjectsCountLabel
+        '
+        Me.newProjectsCountLabel.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.newProjectsCountLabel.Font = New System.Drawing.Font("Segoe UI Semibold", 24.0!)
+        Me.newProjectsCountLabel.ForeColor = System.Drawing.Color.FromArgb(CType(CType(24, Byte), Integer), CType(CType(31, Byte), Integer), CType(CType(42, Byte), Integer))
+        Me.newProjectsCountLabel.Location = New System.Drawing.Point(0, 42)
+        Me.newProjectsCountLabel.Name = "newProjectsCountLabel"
+        Me.newProjectsCountLabel.Size = New System.Drawing.Size(365, 88)
+        Me.newProjectsCountLabel.TabIndex = 1
+        Me.newProjectsCountLabel.Text = "0"
+        Me.newProjectsCountLabel.TextAlign = System.Drawing.ContentAlignment.MiddleCenter
+        '
+        'newProjectsLabel
+        '
+        Me.newProjectsLabel.Dock = System.Windows.Forms.DockStyle.Top
+        Me.newProjectsLabel.Font = New System.Drawing.Font("Segoe UI Semibold", 10.0!)
+        Me.newProjectsLabel.Location = New System.Drawing.Point(0, 0)
+        Me.newProjectsLabel.Name = "newProjectsLabel"
+        Me.newProjectsLabel.Size = New System.Drawing.Size(365, 42)
+        Me.newProjectsLabel.TabIndex = 0
+        Me.newProjectsLabel.Text = "New Projects"
+        Me.newProjectsLabel.TextAlign = System.Drawing.ContentAlignment.MiddleCenter
+        '
+        'updateProjectsPanel
+        '
+        Me.updateProjectsPanel.BackColor = System.Drawing.Color.FromArgb(CType(CType(225, Byte), Integer), CType(CType(239, Byte), Integer), CType(CType(255, Byte), Integer))
+        Me.updateProjectsPanel.Controls.Add(Me.updateProjectsCountLabel)
+        Me.updateProjectsPanel.Controls.Add(Me.updateProjectsLabel)
+        Me.updateProjectsPanel.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.updateProjectsPanel.Location = New System.Drawing.Point(389, 4)
+        Me.updateProjectsPanel.Margin = New System.Windows.Forms.Padding(12, 4, 12, 4)
+        Me.updateProjectsPanel.Name = "updateProjectsPanel"
+        Me.updateProjectsPanel.Size = New System.Drawing.Size(353, 130)
+        Me.updateProjectsPanel.TabIndex = 1
+        '
+        'updateProjectsCountLabel
+        '
+        Me.updateProjectsCountLabel.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.updateProjectsCountLabel.Font = New System.Drawing.Font("Segoe UI Semibold", 24.0!)
+        Me.updateProjectsCountLabel.ForeColor = System.Drawing.Color.FromArgb(CType(CType(24, Byte), Integer), CType(CType(31, Byte), Integer), CType(CType(42, Byte), Integer))
+        Me.updateProjectsCountLabel.Location = New System.Drawing.Point(0, 42)
+        Me.updateProjectsCountLabel.Name = "updateProjectsCountLabel"
+        Me.updateProjectsCountLabel.Size = New System.Drawing.Size(353, 88)
+        Me.updateProjectsCountLabel.TabIndex = 1
+        Me.updateProjectsCountLabel.Text = "0"
+        Me.updateProjectsCountLabel.TextAlign = System.Drawing.ContentAlignment.MiddleCenter
+        '
+        'updateProjectsLabel
+        '
+        Me.updateProjectsLabel.Dock = System.Windows.Forms.DockStyle.Top
+        Me.updateProjectsLabel.Font = New System.Drawing.Font("Segoe UI Semibold", 10.0!)
+        Me.updateProjectsLabel.Location = New System.Drawing.Point(0, 0)
+        Me.updateProjectsLabel.Name = "updateProjectsLabel"
+        Me.updateProjectsLabel.Size = New System.Drawing.Size(353, 42)
+        Me.updateProjectsLabel.TabIndex = 0
+        Me.updateProjectsLabel.Text = "Update Projects"
+        Me.updateProjectsLabel.TextAlign = System.Drawing.ContentAlignment.MiddleCenter
+        '
+        'feedbackProjectsPanel
+        '
+        Me.feedbackProjectsPanel.BackColor = System.Drawing.Color.FromArgb(CType(CType(248, Byte), Integer), CType(CType(222, Byte), Integer), CType(CType(234, Byte), Integer))
+        Me.feedbackProjectsPanel.Controls.Add(Me.feedbackProjectsCountLabel)
+        Me.feedbackProjectsPanel.Controls.Add(Me.feedbackProjectsLabel)
+        Me.feedbackProjectsPanel.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.feedbackProjectsPanel.Location = New System.Drawing.Point(766, 4)
+        Me.feedbackProjectsPanel.Margin = New System.Windows.Forms.Padding(12, 4, 0, 4)
+        Me.feedbackProjectsPanel.Name = "feedbackProjectsPanel"
+        Me.feedbackProjectsPanel.Size = New System.Drawing.Size(366, 130)
+        Me.feedbackProjectsPanel.TabIndex = 2
+        '
+        'feedbackProjectsCountLabel
+        '
+        Me.feedbackProjectsCountLabel.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.feedbackProjectsCountLabel.Font = New System.Drawing.Font("Segoe UI Semibold", 24.0!)
+        Me.feedbackProjectsCountLabel.ForeColor = System.Drawing.Color.FromArgb(CType(CType(24, Byte), Integer), CType(CType(31, Byte), Integer), CType(CType(42, Byte), Integer))
+        Me.feedbackProjectsCountLabel.Location = New System.Drawing.Point(0, 42)
+        Me.feedbackProjectsCountLabel.Name = "feedbackProjectsCountLabel"
+        Me.feedbackProjectsCountLabel.Size = New System.Drawing.Size(366, 88)
+        Me.feedbackProjectsCountLabel.TabIndex = 1
+        Me.feedbackProjectsCountLabel.Text = "0"
+        Me.feedbackProjectsCountLabel.TextAlign = System.Drawing.ContentAlignment.MiddleCenter
+        '
+        'feedbackProjectsLabel
+        '
+        Me.feedbackProjectsLabel.Dock = System.Windows.Forms.DockStyle.Top
+        Me.feedbackProjectsLabel.Font = New System.Drawing.Font("Segoe UI Semibold", 10.0!)
+        Me.feedbackProjectsLabel.Location = New System.Drawing.Point(0, 0)
+        Me.feedbackProjectsLabel.Name = "feedbackProjectsLabel"
+        Me.feedbackProjectsLabel.Size = New System.Drawing.Size(366, 42)
+        Me.feedbackProjectsLabel.TabIndex = 0
+        Me.feedbackProjectsLabel.Text = "Feedback Projects"
+        Me.feedbackProjectsLabel.TextAlign = System.Drawing.ContentAlignment.MiddleCenter
+        '
+        'summaryPeriodLabel
+        '
+        Me.summaryPeriodLabel.Dock = System.Windows.Forms.DockStyle.Top
+        Me.summaryPeriodLabel.ForeColor = System.Drawing.Color.FromArgb(CType(CType(75, Byte), Integer), CType(CType(85, Byte), Integer), CType(CType(99, Byte), Integer))
+        Me.summaryPeriodLabel.Location = New System.Drawing.Point(0, 42)
+        Me.summaryPeriodLabel.Name = "summaryPeriodLabel"
+        Me.summaryPeriodLabel.Size = New System.Drawing.Size(1132, 26)
+        Me.summaryPeriodLabel.TabIndex = 1
+        Me.summaryPeriodLabel.Text = "20-Jun-2026 to 20-Jul-2026"
+        '
+        'summaryTitleLabel
+        '
+        Me.summaryTitleLabel.Dock = System.Windows.Forms.DockStyle.Top
+        Me.summaryTitleLabel.Font = New System.Drawing.Font("Segoe UI Semibold", 12.0!)
+        Me.summaryTitleLabel.ForeColor = System.Drawing.Color.FromArgb(CType(CType(24, Byte), Integer), CType(CType(31, Byte), Integer), CType(CType(42, Byte), Integer))
+        Me.summaryTitleLabel.Location = New System.Drawing.Point(0, 12)
+        Me.summaryTitleLabel.Name = "summaryTitleLabel"
+        Me.summaryTitleLabel.Size = New System.Drawing.Size(1132, 30)
+        Me.summaryTitleLabel.TabIndex = 0
+        Me.summaryTitleLabel.Text = "Projects Planned For This Period"
+        '
+        '_status
+        '
+        Me._status.Dock = System.Windows.Forms.DockStyle.Bottom
+        Me._status.ForeColor = System.Drawing.Color.DimGray
+        Me._status.Location = New System.Drawing.Point(24, 556)
+        Me._status.Name = "_status"
+        Me._status.Size = New System.Drawing.Size(1132, 28)
+        Me._status.TabIndex = 2
+        '
+        'SMAPlannerForm
+        '
+        Me.AutoScaleDimensions = New System.Drawing.SizeF(8.0!, 20.0!)
+        Me.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font
+        Me.BackColor = System.Drawing.Color.FromArgb(CType(CType(244, Byte), Integer), CType(CType(246, Byte), Integer), CType(CType(249, Byte), Integer))
+        Me.ClientSize = New System.Drawing.Size(1180, 820)
+        Me.Controls.Add(Me.gridPanel)
+        Me.Controls.Add(Me.headerPanel)
+        Me.Font = New System.Drawing.Font("Segoe UI", 9.0!)
+        Me.MinimumSize = New System.Drawing.Size(980, 640)
+        Me.Name = "SMAPlannerForm"
+        Me.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen
+        Me.Text = "SMA Planner"
+        Me.headerPanel.ResumeLayout(False)
+        Me.headerPanel.PerformLayout()
+        Me.gridPanel.ResumeLayout(False)
+        CType(Me._grid, System.ComponentModel.ISupportInitialize).EndInit()
+        Me.planningSummaryPanel.ResumeLayout(False)
+        Me.summaryCards.ResumeLayout(False)
+        Me.newProjectsPanel.ResumeLayout(False)
+        Me.updateProjectsPanel.ResumeLayout(False)
+        Me.feedbackProjectsPanel.ResumeLayout(False)
+        Me.ResumeLayout(False)
+
     End Sub
 
     Private headerPanel As Panel
