@@ -19,10 +19,10 @@ Public Class SMASchedulerForm
     Private _capacityGrid As DataGridView
     Private _taskUsageGrid As DataGridView
     Private _resourceUsageGrid As DataGridView
-    Private _plannerPieChart As PlannerPieChartPanel
     Private _plannerLegendGrid As DataGridView
-    Private _plannerTaskCountLabel As Label
-    Private _plannerDurationLabel As Label
+    Private ReadOnly _plannerPieCharts As New List(Of PlannerPieChartPanel)
+    Private ReadOnly _plannerTaskCountLabels As New List(Of Label)
+    Private ReadOnly _plannerDurationLabels As New List(Of Label)
     Private _currentTheme As SchedulerThemePalette = SchedulerThemePalette.ThemeByName(SchedulerThemePreferences.LoadThemeName())
     Private _projectType As String = "New"
     Private ReadOnly _capacityDateColumns As New Dictionary(Of Integer, Date)
@@ -185,9 +185,11 @@ Public Class SMASchedulerForm
         SchedulerThemePreferences.SaveThemeName(_currentTheme.Name)
         ApplyTheme()
         _gantt.Invalidate()
-        If _plannerPieChart IsNot Nothing Then
-            _plannerPieChart.Invalidate()
-        End If
+        For Each chart In _plannerPieCharts
+            If chart IsNot Nothing Then
+                chart.Invalidate()
+            End If
+        Next
         SetStatus("Theme changed to " & _currentTheme.Name)
     End Sub
 
@@ -250,19 +252,24 @@ Public Class SMASchedulerForm
         If _capacityGrid IsNot Nothing Then
             ApplyGridTheme(_capacityGrid, theme)
         End If
-        If _plannerLegendGrid IsNot Nothing Then
-            ApplyGridTheme(_plannerLegendGrid, theme)
-        End If
         If _taskUsageGrid IsNot Nothing Then
             ApplyGridTheme(_taskUsageGrid, theme)
         End If
         If _resourceUsageGrid IsNot Nothing Then
             ApplyGridTheme(_resourceUsageGrid, theme)
         End If
-        For Each label In {_plannerTaskCountLabel, _plannerDurationLabel}
+        If _plannerLegendGrid IsNot Nothing Then
+            ApplyGridTheme(_plannerLegendGrid, theme)
+        End If
+        For Each label In _plannerTaskCountLabels.Concat(_plannerDurationLabels)
             If label IsNot Nothing Then
                 label.BackColor = theme.TileThree
                 label.ForeColor = theme.Text
+            End If
+        Next
+        For Each chart In _plannerPieCharts
+            If chart IsNot Nothing Then
+                chart.Invalidate()
             End If
         Next
     End Sub
@@ -372,6 +379,9 @@ Public Class SMASchedulerForm
         End If
 
         contentSplit.Panel2Collapsed = True
+        _plannerPieCharts.Clear()
+        _plannerTaskCountLabels.Clear()
+        _plannerDurationLabels.Clear()
 
         If mainSplit.Parent IsNot Nothing Then
             mainSplit.Parent.Controls.Remove(mainSplit)
@@ -403,6 +413,14 @@ Public Class SMASchedulerForm
         }
         Dim taskGridHost = BuildWorkspaceSurfaceHost()
         Dim ganttHost = BuildWorkspaceSurfaceHost()
+        Dim allocationPreviewChart As PlannerPieChartPanel = Nothing
+        Dim allocationTaskCountLabel As Label = Nothing
+        Dim allocationDurationLabel As Label = Nothing
+        Dim allocationPreview = BuildPlannerPreviewHost(allocationPreviewChart, allocationTaskCountLabel, allocationDurationLabel)
+        Dim ganttCanvas As New Panel With {
+            .Dock = DockStyle.Fill,
+            .BackColor = Color.White
+        }
 
         taskAllocationTab.Padding = New Padding(0, 0, 0, 10)
         contentSplit.Panel1.Padding = New Padding(0, 0, 0, 10)
@@ -411,7 +429,9 @@ Public Class SMASchedulerForm
         mainSplit.Panel2.Controls.Clear()
         mainSplit.Orientation = Orientation.Vertical
         taskGridHost.Controls.Add(_grid)
-        ganttHost.Controls.Add(_gantt)
+        ganttCanvas.Controls.Add(_gantt)
+        ganttHost.Controls.Add(ganttCanvas)
+        ganttHost.Controls.Add(allocationPreview)
         mainSplit.Panel1.Controls.Add(taskGridHost)
         mainSplit.Panel2.Controls.Add(ganttHost)
         mainSplit.Panel1MinSize = 620
@@ -433,9 +453,15 @@ Public Class SMASchedulerForm
         _taskUsageGrid = BuildTaskViewGrid()
         _resourceUsageGrid = BuildResourceUsageGrid()
         _capacityGrid = BuildCapacityPlanningSummaryGrid()
+        Dim taskUsagePreviewChart As PlannerPieChartPanel = Nothing
+        Dim taskUsageTaskCountLabel As Label = Nothing
+        Dim taskUsageDurationLabel As Label = Nothing
+        Dim resourceUsagePreviewChart As PlannerPieChartPanel = Nothing
+        Dim resourceUsageTaskCountLabel As Label = Nothing
+        Dim resourceUsageDurationLabel As Label = Nothing
 
-        taskViewTab.Controls.Add(_taskUsageGrid)
-        resourceUsageTab.Controls.Add(_resourceUsageGrid)
+        taskViewTab.Controls.Add(BuildWorkspacePreviewSplit(_taskUsageGrid, BuildPlannerPreviewHost(taskUsagePreviewChart, taskUsageTaskCountLabel, taskUsageDurationLabel)))
+        resourceUsageTab.Controls.Add(BuildWorkspacePreviewSplit(_resourceUsageGrid, BuildPlannerPreviewHost(resourceUsagePreviewChart, resourceUsageTaskCountLabel, resourceUsageDurationLabel)))
         capacityPlanningTab.Controls.Add(_capacityGrid)
 
         _workspaceTabs.TabPages.Add(taskAllocationTab)
@@ -446,10 +472,7 @@ Public Class SMASchedulerForm
         contentSplit.Panel1.Controls.Clear()
         contentSplit.Panel1.Controls.Add(_workspaceTabs)
 
-        _plannerPieChart = Nothing
         _plannerLegendGrid = Nothing
-        _plannerTaskCountLabel = Nothing
-        _plannerDurationLabel = Nothing
 
         AddHandler _taskUsageGrid.CellParsing, AddressOf CalendarGridCellParsing
         AddHandler _taskUsageGrid.CellEndEdit, AddressOf TaskViewGridCellEndEdit
@@ -554,6 +577,86 @@ Public Class SMASchedulerForm
             .Padding = New Padding(0, 0, 10, 16),
             .BackColor = Color.White
         }
+    End Function
+
+    Private Function BuildPlannerPreviewHost(ByRef chart As PlannerPieChartPanel, ByRef taskCountLabel As Label, ByRef durationLabel As Label) As Panel
+        Dim host As New Panel With {
+            .Dock = DockStyle.Top,
+            .Height = 310,
+            .Padding = New Padding(10, 10, 10, 12),
+            .BackColor = Color.White
+        }
+
+        Dim card As New Panel With {
+            .Dock = DockStyle.Fill,
+            .BackColor = Color.White,
+            .BorderStyle = BorderStyle.FixedSingle,
+            .Padding = New Padding(12)
+        }
+
+        Dim title As New Label With {
+            .Dock = DockStyle.Top,
+            .Height = 28,
+            .Text = "Planner Preview",
+            .Font = New Font("Segoe UI Semibold", 12.0F),
+            .ForeColor = Color.FromArgb(24, 31, 42),
+            .TextAlign = ContentAlignment.MiddleLeft
+        }
+
+        taskCountLabel = PlannerPreviewBadge("Scheduled Tasks: 0")
+        taskCountLabel.Dock = DockStyle.Top
+
+        durationLabel = PlannerPreviewBadge("Duration: 0 days")
+        durationLabel.Dock = DockStyle.Top
+
+        chart = New PlannerPieChartPanel(_tasks) With {
+            .Dock = DockStyle.Fill,
+            .Margin = New Padding(0),
+            .MinimumSize = New Size(180, 180)
+        }
+
+        card.Controls.Add(chart)
+        card.Controls.Add(durationLabel)
+        card.Controls.Add(taskCountLabel)
+        card.Controls.Add(title)
+        host.Controls.Add(card)
+
+        _plannerPieCharts.Add(chart)
+        _plannerTaskCountLabels.Add(taskCountLabel)
+        _plannerDurationLabels.Add(durationLabel)
+
+        Return host
+    End Function
+
+    Private Function BuildWorkspacePreviewSplit(mainControl As Control, previewHost As Control) As SplitContainer
+        Dim split As New SplitContainer With {
+            .Dock = DockStyle.Fill,
+            .Orientation = Orientation.Vertical,
+            .BackColor = Color.FromArgb(232, 236, 242),
+            .SplitterWidth = 6,
+            .FixedPanel = FixedPanel.Panel2
+        }
+
+        split.Panel1.Padding = New Padding(0, 0, 10, 0)
+        split.Panel2.Padding = New Padding(0)
+        split.Panel1.Controls.Add(mainControl)
+
+        Dim previewCanvas As New Panel With {
+            .Dock = DockStyle.Fill,
+            .BackColor = Color.White
+        }
+        previewCanvas.Controls.Add(previewHost)
+        split.Panel2.Controls.Add(previewCanvas)
+        split.Panel1MinSize = 520
+        split.Panel2MinSize = 250
+
+        AddHandler split.SizeChanged,
+            Sub()
+                ApplyResponsiveSplitter(split, 620, 280, 0.76R)
+            End Sub
+
+        ApplyResponsiveSplitter(split, 620, 280, 0.76R)
+        Return split
     End Function
 
     Private Function BuildTaskViewGrid() As DataGridView
@@ -1487,6 +1590,7 @@ Public Class SMASchedulerForm
             UpdateTaskUsageGrid()
             UpdateResourceUsageGrid()
             UpdateCapacityPlanningGrid()
+            UpdateEmbeddedPlannerPreview()
         Finally
             _isRefreshingWorkspace = False
         End Try
@@ -1523,23 +1627,34 @@ Public Class SMASchedulerForm
     End Sub
 
     Private Sub UpdateEmbeddedPlannerPreview()
-        If _plannerPieChart Is Nothing Then
+        If _plannerPieCharts.Count = 0 Then
             Return
         End If
 
         Dim taskList = _tasks.ToList()
-        _plannerPieChart.UpdateTasks(taskList)
+        Dim duration = taskList.Sum(Function(task) Math.Max(0D, task.DurationDays))
+
+        For Each chart In _plannerPieCharts
+            If chart IsNot Nothing Then
+                chart.UpdateTasks(taskList)
+            End If
+        Next
+
         If _plannerLegendGrid IsNot Nothing Then
             _plannerLegendGrid.DataSource = taskList.Select(Function(task, index) PlannerPreviewRow.FromTask(task, index)).ToList()
         End If
 
-        If _plannerTaskCountLabel IsNot Nothing Then
-            _plannerTaskCountLabel.Text = "Scheduled Tasks: " & taskList.Count.ToString(CultureInfo.InvariantCulture)
-        End If
-        If _plannerDurationLabel IsNot Nothing Then
-            Dim duration = taskList.Sum(Function(task) Math.Max(0D, task.DurationDays))
-            _plannerDurationLabel.Text = "Duration: " & duration.ToString("0.##", CultureInfo.InvariantCulture) & " days"
-        End If
+        For Each label In _plannerTaskCountLabels
+            If label IsNot Nothing Then
+                label.Text = "Scheduled Tasks: " & taskList.Count.ToString(CultureInfo.InvariantCulture)
+            End If
+        Next
+
+        For Each label In _plannerDurationLabels
+            If label IsNot Nothing Then
+                label.Text = "Duration: " & duration.ToString("0.##", CultureInfo.InvariantCulture) & " days"
+            End If
+        Next
     End Sub
 
     Private Sub PlannerLegendCellFormatting(sender As Object, e As DataGridViewCellFormattingEventArgs)
