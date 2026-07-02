@@ -26,6 +26,9 @@ Public Class SMASchedulerForm
     Private _resourceUtilizationApplyButton As Button
     Private _resourceUtilizationClearButton As Button
     Private _resourceUtilizationMailButton As Button
+    Private _scheduleProjectButton As Button
+    Private _projectDetailsCaptionLabel As Label
+    Private _projectDetailsValueLabel As Label
     Private ReadOnly _plannerPieCharts As New List(Of PlannerPieChartPanel)
     Private ReadOnly _plannerTaskCountLabels As New List(Of Label)
     Private ReadOnly _plannerDurationLabels As New List(Of Label)
@@ -93,8 +96,11 @@ Public Class SMASchedulerForm
         ClearProjectForNewSchedule()
         _projectName.Text = If(String.IsNullOrWhiteSpace(liveProject.ProjectName), "SMA Scheduler", liveProject.ProjectName.Trim())
         _versionNumber.Text = If(String.IsNullOrWhiteSpace(liveProject.VersionNumber), "1.0", liveProject.VersionNumber.Trim())
-        _projectType = If(String.IsNullOrWhiteSpace(liveProject.ProjectType), ProjectTypeFromTemplate(liveProject.TemplateName, liveProject.ProjectName), liveProject.ProjectType)
+        _projectType = If(String.IsNullOrWhiteSpace(liveProject.ReportType),
+            If(String.IsNullOrWhiteSpace(liveProject.ProjectType), ProjectTypeFromTemplate(liveProject.TemplateName, liveProject.ProjectName), liveProject.ProjectType),
+            liveProject.ReportType)
         SelectProjectSize(liveProject.ProjectSize)
+        UpdateProjectMetadataDisplay()
 
         Dim projectSize = CStr(_projectSizeSelector.SelectedItem)
         LoadTemplateTasks(liveProject.TemplateName, projectSize)
@@ -117,6 +123,7 @@ Public Class SMASchedulerForm
         SelectProjectSize(snapshot.ProjectSize)
         _totalProjectHours.Value = ClampDecimal(snapshot.TotalProjectHours, _totalProjectHours.Minimum, _totalProjectHours.Maximum)
         _resourcesNeeded.Value = ClampDecimal(snapshot.ResourcesNeeded, _resourcesNeeded.Minimum, _resourcesNeeded.Maximum)
+        UpdateProjectMetadataDisplay()
         If snapshot.Tasks IsNot Nothing Then
             For Each task In snapshot.Tasks
                 _tasks.Add(task)
@@ -167,6 +174,7 @@ Public Class SMASchedulerForm
         AddGridColumns()
         _grid.DataSource = _tasks
         ApplySchedulerHeaderLayout()
+        AddHandler headerPanel.SizeChanged, Sub() LayoutSchedulerHeaderActions()
         ApplyTheme()
         AddHandler _grid.SelectionChanged, AddressOf ScheduleSelectionChanged
         AddHandler btnSave.Click, AddressOf SaveProjectFile
@@ -222,6 +230,96 @@ Public Class SMASchedulerForm
         If _remainingHoursLabel.Parent IsNot Nothing Then
             _remainingHoursLabel.Parent.Controls.Remove(_remainingHoursLabel)
         End If
+
+        EnsureSchedulerHeaderActions()
+        LayoutSchedulerHeaderActions()
+        UpdateProjectMetadataDisplay()
+    End Sub
+
+    Private Sub EnsureSchedulerHeaderActions()
+        If _scheduleProjectButton Is Nothing Then
+            _scheduleProjectButton = New Button With {
+                .Name = "_scheduleProjectButton",
+                .Text = "Schedule Project",
+                .FlatStyle = FlatStyle.Flat,
+                .Size = New Size(178, 38),
+                .Anchor = AnchorStyles.Top Or AnchorStyles.Right,
+                .TabStop = True
+            }
+            _scheduleProjectButton.FlatAppearance.BorderSize = 0
+            AddHandler _scheduleProjectButton.Click, AddressOf ScheduleProjectToSql
+        End If
+
+        If _projectDetailsCaptionLabel Is Nothing Then
+            _projectDetailsCaptionLabel = New Label With {
+                .Name = "_projectDetailsCaptionLabel",
+                .Text = "Project Details",
+                .AutoSize = True,
+                .BackColor = Color.Transparent,
+                .Anchor = AnchorStyles.Top Or AnchorStyles.Right
+            }
+        End If
+
+        If _projectDetailsValueLabel Is Nothing Then
+            _projectDetailsValueLabel = New Label With {
+                .Name = "_projectDetailsValueLabel",
+                .AutoEllipsis = True,
+                .BackColor = Color.Transparent,
+                .TextAlign = ContentAlignment.MiddleLeft,
+                .Anchor = AnchorStyles.Top Or AnchorStyles.Right
+            }
+        End If
+
+        If Not headerPanel.Controls.Contains(_scheduleProjectButton) Then
+            headerPanel.Controls.Add(_scheduleProjectButton)
+        End If
+        If Not headerPanel.Controls.Contains(_projectDetailsCaptionLabel) Then
+            headerPanel.Controls.Add(_projectDetailsCaptionLabel)
+        End If
+        If Not headerPanel.Controls.Contains(_projectDetailsValueLabel) Then
+            headerPanel.Controls.Add(_projectDetailsValueLabel)
+        End If
+
+        _scheduleProjectButton.BringToFront()
+        _projectDetailsCaptionLabel.BringToFront()
+        _projectDetailsValueLabel.BringToFront()
+    End Sub
+
+    Private Sub LayoutSchedulerHeaderActions()
+        If headerPanel Is Nothing OrElse _scheduleProjectButton Is Nothing Then
+            Return
+        End If
+
+        Dim rightMargin = 28
+        Dim buttonWidth = 178
+        Dim buttonLeft = Math.Max(20, headerPanel.ClientSize.Width - buttonWidth - rightMargin)
+
+        _scheduleProjectButton.Location = New Point(buttonLeft, 74)
+        _projectDetailsCaptionLabel.Location = New Point(buttonLeft, 24)
+        _projectDetailsValueLabel.Location = New Point(buttonLeft, 44)
+        _projectDetailsValueLabel.Size = New Size(Math.Max(buttonWidth + 90, 230), 22)
+    End Sub
+
+    Private Sub UpdateProjectMetadataDisplay()
+        If _projectDetailsValueLabel Is Nothing Then
+            Return
+        End If
+
+        Dim projectSize = If(_projectSizeSelector Is Nothing OrElse _projectSizeSelector.SelectedItem Is Nothing,
+            "Small",
+            Convert.ToString(_projectSizeSelector.SelectedItem, CultureInfo.InvariantCulture))
+
+        _projectDetailsValueLabel.Text = "Type: " & If(String.IsNullOrWhiteSpace(_projectType), "New", _projectType) &
+            " | Size: " & projectSize
+    End Sub
+
+    Private Sub ScheduleProjectToSql(sender As Object, e As EventArgs)
+        If _tasks.Count = 0 Then
+            MessageBox.Show(Me, "There is no task assigned for the project.", "No Tasks", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            Return
+        End If
+
+        SaveProjectToSql(showSuccessMessage:=True)
     End Sub
 
     Private Sub ApplyTheme()
@@ -235,11 +333,15 @@ Public Class SMASchedulerForm
         headerPanel.BackColor = theme.HeaderBack
         appTitle.ForeColor = theme.Text
 
-        For Each label In {projectLabel, versionLabel, totalHoursLabel, projectSizeLabel, resourcesNeededLabel}
+        For Each label In {projectLabel, versionLabel, totalHoursLabel, projectSizeLabel, resourcesNeededLabel, _projectDetailsCaptionLabel}
             If label IsNot Nothing Then
                 label.ForeColor = theme.MutedText
             End If
         Next
+
+        If _projectDetailsValueLabel IsNot Nothing Then
+            _projectDetailsValueLabel.ForeColor = theme.Text
+        End If
 
         _summaryTitle.BackColor = theme.TileOne
         _summaryDates.BackColor = theme.TileTwo
@@ -292,6 +394,10 @@ Public Class SMASchedulerForm
         If _resourceUtilizationMailButton IsNot Nothing Then
             _resourceUtilizationMailButton.BackColor = theme.Action
             _resourceUtilizationMailButton.ForeColor = Color.White
+        End If
+        If _scheduleProjectButton IsNot Nothing Then
+            _scheduleProjectButton.BackColor = theme.Action
+            _scheduleProjectButton.ForeColor = Color.White
         End If
         If _resourceUtilizationColorSelector IsNot Nothing Then
             _resourceUtilizationColorSelector.BackColor = theme.PanelBack
@@ -354,6 +460,7 @@ Public Class SMASchedulerForm
 
     Private Sub ProjectInputsChanged(sender As Object, e As EventArgs)
         UpdateSummary()
+        UpdateProjectMetadataDisplay()
         SetStatus("Project planning values updated")
     End Sub
 
@@ -379,6 +486,7 @@ Public Class SMASchedulerForm
         If _isLoadingCatalogControls Then
             Return
         End If
+        UpdateProjectMetadataDisplay()
         UpdateAllocationHoursFromSelectedCatalog()
     End Sub
 
@@ -1032,6 +1140,7 @@ Public Class SMASchedulerForm
         _versionNumber.Text = "1.0"
         _totalProjectHours.Value = 0
         _resourcesNeeded.Value = 0
+        UpdateProjectMetadataDisplay()
         RecalculateAndRefresh("New project created")
         ClearPlanningInputDisplays()
         MarkCurrentStateSaved()
@@ -2142,7 +2251,7 @@ Public Class SMASchedulerForm
     End Sub
 
     Private Sub StylePlaceholderCell(cell As DataGridViewCell, availableHours As Decimal, resourceName As String, workDate As Date)
-        cell.Value = availableHours
+        cell.Value = ""
         cell.Style.BackColor = Color.FromArgb(247, 250, 252)
         cell.Style.ForeColor = Color.FromArgb(156, 163, 175)
         cell.Style.Font = New Font("Segoe UI", 9.0F, FontStyle.Italic)
@@ -2644,6 +2753,10 @@ Public Class SMASchedulerForm
         Dim baseline As Decimal
         If _resourceAvailabilityCache.TryGetValue(resourceName.Trim(), byDate) AndAlso byDate IsNot Nothing AndAlso byDate.TryGetValue(workDate.Date, baseline) Then
             Return Math.Max(0D, baseline)
+        End If
+
+        If workDate.DayOfWeek = DayOfWeek.Saturday OrElse workDate.DayOfWeek = DayOfWeek.Sunday Then
+            Return 0D
         End If
 
         Return 8D

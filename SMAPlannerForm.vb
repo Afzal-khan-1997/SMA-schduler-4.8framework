@@ -16,8 +16,8 @@ Public Class SMAPlannerForm
         InitializeComponent()
         ConfigurePlannerForm()
         ApplyCurrentTheme()
-        LoadLiveProjectList()
         LoadProjectList()
+        LoadLiveProjectList()
     End Sub
 
     Private Sub ConfigurePlannerForm()
@@ -35,9 +35,10 @@ Public Class SMAPlannerForm
         _grid.DefaultCellStyle.SelectionForeColor = Color.FromArgb(24, 31, 42)
 
         AddHandler btnNewProject.Click, AddressOf OpenNewProject
-        AddHandler btnRefreshList.Click, Sub() LoadProjectList()
+        AddHandler btnRefreshList.Click, Sub() RefreshPlannerLists()
         AddHandler btnScheduleProject.Click, AddressOf OpenSelectedLiveProjectTemplate
         AddHandler _liveProjectSearchBox.TextChanged, Sub() LoadLiveProjectList()
+        AddHandler _liveProjectSearchBox.KeyDown, AddressOf LiveProjectSearchKeyDown
         AddHandler _liveProjectSelector.SelectedIndexChanged, AddressOf LiveProjectSelectionChanged
         AddHandler _grid.CellDoubleClick, AddressOf OpenSelectedExistingProject
         AddHandler Activated, AddressOf PlannerActivated
@@ -185,7 +186,8 @@ Public Class SMAPlannerForm
 
     Private Sub LoadLiveProjectList()
         Dim selectedCode = SelectedLiveProject()?.ProjectCode
-        Dim matches = _liveProjectCatalog.SearchProjects(_liveProjectSearchBox.Text)
+        Dim selectedSavedProjectId = If(SelectedLiveProject() Is Nothing, 0, SelectedLiveProject().SavedProjectId)
+        Dim matches = BuildSelectableProjects(_liveProjectSearchBox.Text)
 
         _liveProjectSelector.BeginUpdate()
         _liveProjectSelector.DataSource = Nothing
@@ -199,21 +201,84 @@ Public Class SMAPlannerForm
 
         If _liveProjectSelector.Items.Count > 0 Then
             Dim restoreIndex = -1
-            If Not String.IsNullOrWhiteSpace(selectedCode) Then
-                For i = 0 To _liveProjects.Count - 1
-                    If String.Equals(_liveProjects(i).ProjectCode, selectedCode, StringComparison.OrdinalIgnoreCase) Then
-                        restoreIndex = i
-                        Exit For
-                    End If
-                Next
+            For i = 0 To _liveProjects.Count - 1
+                Dim liveProject = _liveProjects(i)
+                If selectedSavedProjectId > 0 AndAlso liveProject.SavedProjectId = selectedSavedProjectId Then
+                    restoreIndex = i
+                    Exit For
+                End If
+                If Not String.IsNullOrWhiteSpace(selectedCode) AndAlso String.Equals(liveProject.ProjectCode, selectedCode, StringComparison.OrdinalIgnoreCase) Then
+                    restoreIndex = i
+                    Exit For
+                End If
+            Next
+            If restoreIndex < 0 AndAlso Not String.IsNullOrWhiteSpace(_liveProjectSearchBox.Text) Then
+                restoreIndex = 0
             End If
             _liveProjectSelector.SelectedIndex = If(restoreIndex >= 0, restoreIndex, 0)
         Else
             _liveProjectSelector.SelectedIndex = -1
         End If
         _liveProjectSelector.EndUpdate()
+
+        If _liveProjectSearchBox.Focused AndAlso _liveProjectSelector.Items.Count > 0 AndAlso Not String.IsNullOrWhiteSpace(_liveProjectSearchBox.Text) Then
+            _liveProjectSelector.DroppedDown = True
+            Cursor.Current = Cursors.Default
+        End If
+
         UpdateLiveProjectSizeLabel()
     End Sub
+
+    Private Function BuildSelectableProjects(searchText As String) As List(Of LiveProjectItem)
+        Dim results As New List(Of LiveProjectItem)()
+        results.AddRange(_liveProjectCatalog.SearchProjects(searchText))
+
+        For Each project In SearchStoredProjects(searchText)
+            Dim alreadyPresent = results.Any(Function(item)
+                                                 Return item.SavedProjectId > 0 AndAlso
+                                                     item.SavedProjectId = project.SavedProjectId
+                                             End Function)
+            If Not alreadyPresent Then
+                results.Add(project)
+            End If
+        Next
+
+        Return results.
+            OrderBy(Function(project) If(project.IsStoredProject, 0, 1)).
+            ThenBy(Function(project) project.ProjectName, StringComparer.OrdinalIgnoreCase).
+            ToList()
+    End Function
+
+    Private Function SearchStoredProjects(searchText As String) As IEnumerable(Of LiveProjectItem)
+        Dim query = If(searchText, "").Trim()
+        Dim matches = _projects.AsEnumerable()
+
+        If query.Length > 0 Then
+            matches = matches.Where(Function(project)
+                                        Return project.ProjectId.ToString(CultureInfo.InvariantCulture).IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0 OrElse
+                                            project.ProjectName.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0 OrElse
+                                            project.ProjectSize.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0 OrElse
+                                            project.ProjectType.IndexOf(query, StringComparison.OrdinalIgnoreCase) >= 0
+                                    End Function)
+        End If
+
+        Return matches.Select(Function(project) CreateStoredProjectOption(project))
+    End Function
+
+    Private Shared Function CreateStoredProjectOption(project As ProjectLibraryItem) As LiveProjectItem
+        Return New LiveProjectItem With {
+            .ProjectCode = "SQL-" & project.ProjectId.ToString(CultureInfo.InvariantCulture),
+            .ProjectName = project.ProjectName,
+            .ClientName = "SQL",
+            .VersionNumber = If(String.IsNullOrWhiteSpace(project.VersionNumber), "1.0", project.VersionNumber),
+            .ProjectSize = If(String.IsNullOrWhiteSpace(project.ProjectSize), "Small", project.ProjectSize),
+            .TemplateName = project.ProjectName,
+            .ProjectType = If(String.IsNullOrWhiteSpace(project.ProjectType), "New", project.ProjectType),
+            .SavedProjectId = project.ProjectId,
+            .SourceFilePath = project.FilePath,
+            .ReportType = If(String.IsNullOrWhiteSpace(project.ProjectType), "New", project.ProjectType)
+        }
+    End Function
 
     Private Sub LoadProjectList()
         _projects.Clear()
@@ -242,6 +307,11 @@ Public Class SMAPlannerForm
             _status.Text = _projects.Count.ToString(CultureInfo.InvariantCulture) & " planned project(s). Double-click a project to update its schedule."
         End If
         UpdatePlanningSummary()
+    End Sub
+
+    Private Sub RefreshPlannerLists()
+        LoadProjectList()
+        LoadLiveProjectList()
     End Sub
 
     Private Sub UpdatePlanningSummary()
@@ -284,7 +354,22 @@ Public Class SMAPlannerForm
             Return
         End If
 
-        _liveProjectSizeLabel.Text = "Project size: " & selectedProject.ProjectSize
+        _liveProjectSizeLabel.Text = "Project size: " & selectedProject.ProjectSize & " | Type: " & selectedProject.ProjectType
+    End Sub
+
+    Private Sub LiveProjectSearchKeyDown(sender As Object, e As KeyEventArgs)
+        If e.KeyCode <> Keys.Enter Then
+            Return
+        End If
+
+        e.Handled = True
+        e.SuppressKeyPress = True
+
+        If _liveProjectSelector.Items.Count > 0 Then
+            _liveProjectSelector.SelectedIndex = 0
+            _liveProjectSelector.DroppedDown = False
+            UpdateLiveProjectSizeLabel()
+        End If
     End Sub
 
     Private Sub OpenNewProject(sender As Object, e As EventArgs)
@@ -293,7 +378,7 @@ Public Class SMAPlannerForm
             FormTransitionService.ShowDialogWithMotion(Me, scheduler)
         End Using
         ApplyCurrentTheme()
-        LoadProjectList()
+        RefreshPlannerLists()
     End Sub
 
     Private Sub OpenSelectedLiveProjectTemplate(sender As Object, e As EventArgs)
@@ -304,11 +389,27 @@ Public Class SMAPlannerForm
         End If
 
         Using scheduler As New SMASchedulerForm()
-            scheduler.LoadLiveProjectTemplate(selectedProject)
+            If selectedProject.SavedProjectId > 0 AndAlso _sqlRepository IsNot Nothing Then
+                Dim snapshot = _sqlRepository.LoadProjectSnapshot(selectedProject.SavedProjectId)
+                If snapshot IsNot Nothing Then
+                    scheduler.LoadProjectSnapshot(snapshot)
+                Else
+                    scheduler.LoadLiveProjectTemplate(selectedProject)
+                End If
+            ElseIf selectedProject.IsStoredProject AndAlso Not String.IsNullOrWhiteSpace(selectedProject.SourceFilePath) Then
+                Dim snapshot = _projectLibrary.LoadSnapshot(selectedProject.SourceFilePath)
+                If snapshot IsNot Nothing Then
+                    scheduler.LoadProjectSnapshot(snapshot)
+                Else
+                    scheduler.LoadLiveProjectTemplate(selectedProject)
+                End If
+            Else
+                scheduler.LoadLiveProjectTemplate(selectedProject)
+            End If
             FormTransitionService.ShowDialogWithMotion(Me, scheduler)
         End Using
         ApplyCurrentTheme()
-        LoadProjectList()
+        RefreshPlannerLists()
     End Sub
 
     Private Sub OpenSelectedExistingProject(sender As Object, e As DataGridViewCellEventArgs)
@@ -346,7 +447,7 @@ Public Class SMAPlannerForm
             FormTransitionService.ShowDialogWithMotion(Me, scheduler)
         End Using
         ApplyCurrentTheme()
-        LoadProjectList()
+        RefreshPlannerLists()
     End Sub
 
     Private Sub SetPlannerStatus(message As String)

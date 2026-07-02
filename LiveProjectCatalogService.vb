@@ -81,6 +81,15 @@ Public Class LiveProjectItem
     Public Property ProjectSize As String = "Small"
     Public Property TemplateName As String = "New Project"
     Public Property ProjectType As String = "New"
+    Public Property SavedProjectId As Integer
+    Public Property SourceFilePath As String = ""
+    Public Property ReportType As String = ""
+
+    Public ReadOnly Property IsStoredProject As Boolean
+        Get
+            Return SavedProjectId > 0 OrElse Not String.IsNullOrWhiteSpace(SourceFilePath)
+        End Get
+    End Property
 
     Public ReadOnly Property DisplayText As String
         Get
