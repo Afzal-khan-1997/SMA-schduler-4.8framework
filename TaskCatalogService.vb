@@ -1,5 +1,16 @@
 Public Class TaskCatalogService
+    Private ReadOnly _sqlRepository As SqlProjectRepository
+
+    Public Sub New(Optional sqlRepository As SqlProjectRepository = Nothing)
+        _sqlRepository = sqlRepository
+    End Sub
+
     Public Function LoadAvailableTasks() As List(Of TaskCatalogItem)
+        Dim sqlTasks = LoadAvailableTasksFromSql()
+        If sqlTasks.Count > 0 Then
+            Return sqlTasks
+        End If
+
         Return New List(Of TaskCatalogItem) From {
             Task(1, "Input study and Copy files to M Files", "Beginning", 0.25D, 0.5D, 1D, 2D, "Customer Service", 1),
             Task(2, "Send Potential WG and Input Issues to customer and CSR", "Previous Task", 0.25D, 0.25D, 0.25D, 0.25D, "Customer Service", 5),
@@ -93,6 +104,11 @@ Public Class TaskCatalogService
     End Function
 
     Public Function LoadTemplateTasks(templateName As String, projectSize As String) As List(Of TaskCatalogItem)
+        Dim sqlTasks = LoadTemplateTasksFromSql(templateName, projectSize)
+        If sqlTasks.Count > 0 Then
+            Return sqlTasks
+        End If
+
         Dim normalizedTemplate = If(templateName, "").Trim()
         If IsSmaNewProjectTemplate(normalizedTemplate) Then
             Return LoadSmaNewProjectTasks().
@@ -121,6 +137,30 @@ Public Class TaskCatalogService
             Where(Function(task) task.HoursForSize(projectSize) > 0D).
             OrderBy(Function(task) task.DatabaseTaskId).
             ToList()
+    End Function
+
+    Private Function LoadAvailableTasksFromSql() As List(Of TaskCatalogItem)
+        If _sqlRepository Is Nothing Then
+            Return New List(Of TaskCatalogItem)()
+        End If
+
+        Try
+            Return _sqlRepository.LoadTaskCatalog()
+        Catch
+            Return New List(Of TaskCatalogItem)()
+        End Try
+    End Function
+
+    Private Function LoadTemplateTasksFromSql(templateName As String, projectSize As String) As List(Of TaskCatalogItem)
+        If _sqlRepository Is Nothing Then
+            Return New List(Of TaskCatalogItem)()
+        End If
+
+        Try
+            Return _sqlRepository.LoadTaskTemplates(templateName, projectSize)
+        Catch
+            Return New List(Of TaskCatalogItem)()
+        End Try
     End Function
 
     Private Function LoadSmaNewProjectTasks() As List(Of TaskCatalogItem)

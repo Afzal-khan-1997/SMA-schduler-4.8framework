@@ -1,9 +1,11 @@
 Imports System.Globalization
 
 Public Class LiveProjectCatalogService
+    Private ReadOnly _sqlRepository As SqlProjectRepository
     Private ReadOnly _projects As List(Of LiveProjectItem)
 
-    Public Sub New()
+    Public Sub New(Optional sqlRepository As SqlProjectRepository = Nothing)
+        _sqlRepository = sqlRepository
         ' SQL connection will replace this seed list later. The form and scheduler already use this service boundary.
         _projects = New List(Of LiveProjectItem) From {
             CreateSmaBreProjectTemplate(),
@@ -57,6 +59,15 @@ Public Class LiveProjectCatalogService
 
     Public Function SearchProjects(searchText As String) As List(Of LiveProjectItem)
         Dim query = If(searchText, "").Trim()
+        Dim results As New List(Of LiveProjectItem)()
+
+        If _sqlRepository IsNot Nothing Then
+            Try
+                results.AddRange(_sqlRepository.LoadTemplateProjects(query))
+            Catch
+            End Try
+        End If
+
         Dim matches = _projects.AsEnumerable()
 
         If query.Length > 0 Then
@@ -69,7 +80,32 @@ Public Class LiveProjectCatalogService
                                     End Function)
         End If
 
-        Return matches.OrderBy(Function(project) project.ProjectName).ToList()
+        results.AddRange(matches)
+
+        Return results.
+            GroupBy(Function(project) project.ProjectName, StringComparer.OrdinalIgnoreCase).
+            Select(Function(group) group.First()).
+            OrderBy(Function(project) project.ProjectName).
+            ToList()
+    End Function
+
+    Public Function GetDefaultNewProjectTemplate() As LiveProjectItem
+        Dim availableProjects = SearchProjects("")
+        Dim preferred = availableProjects.FirstOrDefault(
+            Function(project) project.ProjectType.Equals("New", StringComparison.OrdinalIgnoreCase) AndAlso
+                (project.ProjectName.IndexOf("new", StringComparison.OrdinalIgnoreCase) >= 0 OrElse
+                 project.TemplateName.IndexOf("new", StringComparison.OrdinalIgnoreCase) >= 0))
+
+        If preferred IsNot Nothing Then
+            Return preferred
+        End If
+
+        preferred = availableProjects.FirstOrDefault(Function(project) project.ProjectType.Equals("New", StringComparison.OrdinalIgnoreCase))
+        If preferred IsNot Nothing Then
+            Return preferred
+        End If
+
+        Return CreateSmaNewProjectTemplate()
     End Function
 End Class
 

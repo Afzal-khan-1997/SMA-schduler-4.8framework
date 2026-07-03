@@ -372,15 +372,16 @@ Partial Class SMASchedulerForm
         Me._summaryProgress.TabIndex = 7
         Me._summaryProgress.Text = "0% complete"
         Me._summaryProgress.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
+        Me._summaryProgress.Visible = False
         '
         '_summaryResources
         '
         Me._summaryResources.BackColor = System.Drawing.Color.FromArgb(CType(CType(248, Byte), Integer), CType(CType(222, Byte), Integer), CType(CType(234, Byte), Integer))
         Me._summaryResources.Font = New System.Drawing.Font("Segoe UI Semibold", 10.0!)
         Me._summaryResources.ForeColor = System.Drawing.Color.FromArgb(CType(CType(37, Byte), Integer), CType(CType(47, Byte), Integer), CType(CType(63, Byte), Integer))
-        Me._summaryResources.Location = New System.Drawing.Point(642, 170)
+        Me._summaryResources.Location = New System.Drawing.Point(442, 170)
         Me._summaryResources.Name = "_summaryResources"
-        Me._summaryResources.Size = New System.Drawing.Size(189, 56)
+        Me._summaryResources.Size = New System.Drawing.Size(224, 56)
         Me._summaryResources.TabIndex = 8
         Me._summaryResources.Text = "No resources"
         Me._summaryResources.TextAlign = System.Drawing.ContentAlignment.MiddleLeft

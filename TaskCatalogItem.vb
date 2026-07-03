@@ -2,6 +2,7 @@ Public Class TaskCatalogItem
     Public Property DatabaseTaskId As Integer
     Public Property Title As String = ""
     Public Property Predecessor As String = ""
+    Public Property DependencyType As String = "FS"
     Public Property Summary As String = ""
     Public Property SmallHours As Decimal
     Public Property MediumHours As Decimal

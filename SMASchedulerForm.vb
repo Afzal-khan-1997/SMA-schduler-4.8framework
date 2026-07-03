@@ -7,11 +7,11 @@ Imports System.IO
 Public Class SMASchedulerForm
     Private ReadOnly _tasks As New BindingList(Of ScheduleTask)
     Private ReadOnly _engine As New ScheduleEngine()
-    Private ReadOnly _taskCatalogService As New TaskCatalogService()
-    Private ReadOnly _employeeCatalogService As New EmployeeCatalogService()
     Private ReadOnly _xlsxExportService As New XlsxExportService()
     Private ReadOnly _projectLibrary As New ProjectLibraryService()
     Private ReadOnly _sqlRepository As SqlProjectRepository = CreateSqlRepository()
+    Private ReadOnly _taskCatalogService As TaskCatalogService
+    Private ReadOnly _employeeCatalogService As EmployeeCatalogService
     Private ReadOnly _taskCatalog As New BindingList(Of TaskCatalogItem)
     Private ReadOnly _employees As New BindingList(Of String)
 
@@ -30,6 +30,7 @@ Public Class SMASchedulerForm
     Private _projectDetailsCaptionLabel As Label
     Private _projectDetailsValueLabel As Label
     Private ReadOnly _plannerPieCharts As New List(Of PlannerPieChartPanel)
+    Private ReadOnly _plannerLegendGrids As New List(Of DataGridView)
     Private ReadOnly _plannerTaskCountLabels As New List(Of Label)
     Private ReadOnly _plannerDurationLabels As New List(Of Label)
     Private _currentTheme As SchedulerThemePalette = SchedulerThemePalette.ThemeByName(SchedulerThemePreferences.LoadThemeName())
@@ -54,6 +55,8 @@ Public Class SMASchedulerForm
     Private _lastSavedSignature As String = ""
 
     Public Sub New()
+        _taskCatalogService = New TaskCatalogService(_sqlRepository)
+        _employeeCatalogService = New EmployeeCatalogService(_sqlRepository)
         InitializeComponent()
         ConfigureDesignerUi()
         AddHandler _tasks.ListChanged, AddressOf TasksChanged
@@ -231,6 +234,14 @@ Public Class SMASchedulerForm
             _remainingHoursLabel.Parent.Controls.Remove(_remainingHoursLabel)
         End If
 
+        If _summaryProgress IsNot Nothing Then
+            _summaryProgress.Visible = False
+        End If
+        If _summaryResources IsNot Nothing AndAlso _summaryProgress IsNot Nothing Then
+            _summaryResources.Location = New Point(_summaryProgress.Left, _summaryResources.Top)
+            _summaryResources.Size = New Size(224, _summaryResources.Height)
+        End If
+
         EnsureSchedulerHeaderActions()
         LayoutSchedulerHeaderActions()
         UpdateProjectMetadataDisplay()
@@ -345,9 +356,12 @@ Public Class SMASchedulerForm
 
         _summaryTitle.BackColor = theme.TileOne
         _summaryDates.BackColor = theme.TileTwo
-        _summaryProgress.BackColor = theme.TileThree
+        If _summaryProgress IsNot Nothing Then
+            _summaryProgress.BackColor = theme.TileThree
+            _summaryProgress.Visible = False
+        End If
         _summaryResources.BackColor = theme.TileFour
-        For Each label In {_summaryTitle, _summaryDates, _summaryProgress, _summaryResources}
+        For Each label In {_summaryTitle, _summaryDates, _summaryResources}
             label.ForeColor = theme.Text
         Next
 
@@ -376,6 +390,11 @@ Public Class SMASchedulerForm
         If _resourceUtilizationGrid IsNot Nothing Then
             ApplyGridTheme(_resourceUtilizationGrid, theme)
         End If
+        For Each legend In _plannerLegendGrids
+            If legend IsNot Nothing Then
+                ApplyGridTheme(legend, theme)
+            End If
+        Next
         If _plannerLegendGrid IsNot Nothing Then
             ApplyGridTheme(_plannerLegendGrid, theme)
         End If
@@ -524,6 +543,7 @@ Public Class SMASchedulerForm
 
         contentSplit.Panel2Collapsed = True
         _plannerPieCharts.Clear()
+        _plannerLegendGrids.Clear()
         _plannerTaskCountLabels.Clear()
         _plannerDurationLabels.Clear()
 
@@ -561,7 +581,7 @@ Public Class SMASchedulerForm
         Dim allocationPreviewChart As PlannerPieChartPanel = Nothing
         Dim allocationTaskCountLabel As Label = Nothing
         Dim allocationDurationLabel As Label = Nothing
-        Dim allocationPreview = BuildPlannerPreviewHost(allocationPreviewChart, allocationTaskCountLabel, allocationDurationLabel)
+        Dim allocationPreview = BuildPlannerPreviewHost(PlannerPreviewMode.ResourcesUsed, allocationPreviewChart, allocationTaskCountLabel, allocationDurationLabel)
         Dim ganttCanvas As New Panel With {
             .Dock = DockStyle.Fill,
             .BackColor = Color.White
@@ -609,8 +629,8 @@ Public Class SMASchedulerForm
         Dim resourceUsageTaskCountLabel As Label = Nothing
         Dim resourceUsageDurationLabel As Label = Nothing
 
-        taskViewTab.Controls.Add(BuildWorkspacePreviewSplit(_taskUsageGrid, BuildPlannerPreviewHost(taskUsagePreviewChart, taskUsageTaskCountLabel, taskUsageDurationLabel)))
-        resourceUsageTab.Controls.Add(BuildWorkspacePreviewSplit(_resourceUsageGrid, BuildPlannerPreviewHost(resourceUsagePreviewChart, resourceUsageTaskCountLabel, resourceUsageDurationLabel)))
+        taskViewTab.Controls.Add(BuildWorkspacePreviewSplit(_taskUsageGrid, BuildPlannerPreviewHost(PlannerPreviewMode.TaskDuration, taskUsagePreviewChart, taskUsageTaskCountLabel, taskUsageDurationLabel)))
+        resourceUsageTab.Controls.Add(BuildWorkspacePreviewSplit(_resourceUsageGrid, BuildPlannerPreviewHost(PlannerPreviewMode.ResourceContribution, resourceUsagePreviewChart, resourceUsageTaskCountLabel, resourceUsageDurationLabel)))
         capacityPlanningTab.Controls.Add(_capacityGrid)
         resourceUtilizationTab.Controls.Add(BuildResourceUtilizationHost())
 
@@ -705,6 +725,32 @@ Public Class SMASchedulerForm
         End Try
     End Sub
 
+    Private Sub ApplyFixedPanel2Width(split As SplitContainer, preferredPanel1Min As Integer, preferredPanel2Width As Integer)
+        If split Is Nothing OrElse split.IsDisposed Then
+            Return
+        End If
+
+        Dim available = If(split.Orientation = Orientation.Vertical, split.Width, split.Height) - split.SplitterWidth
+        If available < 20 Then
+            Return
+        End If
+
+        Dim panel1Min = Math.Max(1, Math.Min(preferredPanel1Min, Math.Max(1, available - 1)))
+        Dim panel2Width = Math.Max(1, Math.Min(preferredPanel2Width, Math.Max(1, available - panel1Min)))
+        Dim splitterDistance = Math.Max(panel1Min, available - panel2Width)
+        splitterDistance = Math.Min(splitterDistance, available - Math.Max(1, panel2Width))
+
+        Try
+            split.Panel1MinSize = 1
+            split.Panel2MinSize = 1
+            split.SplitterDistance = splitterDistance
+            split.Panel1MinSize = panel1Min
+            split.Panel2MinSize = panel2Width
+        Catch ex As InvalidOperationException
+            ' Ignore transient layout calculations while WinForms is resizing.
+        End Try
+    End Sub
+
     Private Function PlannerPreviewBadge(text As String) As Label
         Return New Label With {
             .AutoSize = False,
@@ -734,7 +780,7 @@ Public Class SMASchedulerForm
         }
     End Function
 
-    Private Function BuildPlannerPreviewHost(ByRef chart As PlannerPieChartPanel, ByRef taskCountLabel As Label, ByRef durationLabel As Label) As Panel
+    Private Function BuildPlannerPreviewHost(mode As PlannerPreviewMode, ByRef chart As PlannerPieChartPanel, ByRef taskCountLabel As Label, ByRef durationLabel As Label) As Panel
         Dim host As New Panel With {
             .Dock = DockStyle.Top,
             .Height = 310,
@@ -758,25 +804,43 @@ Public Class SMASchedulerForm
             .TextAlign = ContentAlignment.MiddleLeft
         }
 
-        taskCountLabel = PlannerPreviewBadge("Scheduled Tasks: 0")
+        taskCountLabel = PlannerPreviewBadge(PreviewPrimaryBadgeText(mode, 0, 0D, 0))
         taskCountLabel.Dock = DockStyle.Top
+        taskCountLabel.Tag = mode
 
-        durationLabel = PlannerPreviewBadge("Duration: 0 days")
+        durationLabel = PlannerPreviewBadge(PreviewSecondaryBadgeText(mode, 0D, 0D))
         durationLabel.Dock = DockStyle.Top
+        durationLabel.Tag = mode
 
-        chart = New PlannerPieChartPanel(_tasks) With {
+        chart = New PlannerPieChartPanel() With {
             .Dock = DockStyle.Fill,
             .Margin = New Padding(0),
-            .MinimumSize = New Size(180, 180)
+            .MinimumSize = New Size(180, 180),
+            .PreviewMode = mode
         }
 
-        card.Controls.Add(chart)
+        Dim legend = PlannerLegendGrid(mode)
+        legend.Dock = DockStyle.Right
+        legend.Width = 220
+
+        Dim bodyPanel As New Panel With {
+            .Dock = DockStyle.Fill,
+            .BackColor = Color.White
+        }
+        bodyPanel.Controls.Add(chart)
+        bodyPanel.Controls.Add(legend)
+
+        card.Controls.Add(bodyPanel)
         card.Controls.Add(durationLabel)
         card.Controls.Add(taskCountLabel)
         card.Controls.Add(title)
         host.Controls.Add(card)
 
         _plannerPieCharts.Add(chart)
+        _plannerLegendGrids.Add(legend)
+        If _plannerLegendGrid Is Nothing Then
+            _plannerLegendGrid = legend
+        End If
         _plannerTaskCountLabels.Add(taskCountLabel)
         _plannerDurationLabels.Add(durationLabel)
 
@@ -802,16 +866,113 @@ Public Class SMASchedulerForm
         }
         previewCanvas.Controls.Add(previewHost)
         split.Panel2.Controls.Add(previewCanvas)
-        split.Panel1MinSize = 520
-        split.Panel2MinSize = 250
 
         AddHandler split.SizeChanged,
             Sub()
-                ApplyResponsiveSplitter(split, 620, 280, 0.76R)
+                ApplyFixedPanel2Width(split, 620, 310)
             End Sub
 
-        ApplyResponsiveSplitter(split, 620, 280, 0.76R)
+        ApplyFixedPanel2Width(split, 620, 310)
         Return split
+    End Function
+
+    Private Shared Function PreviewPrimaryBadgeText(mode As PlannerPreviewMode, taskCount As Integer, assignedHours As Decimal, resourceCount As Integer) As String
+        Select Case mode
+            Case PlannerPreviewMode.ResourcesUsed
+                Return "Resources Selected: " & resourceCount.ToString(CultureInfo.InvariantCulture)
+            Case PlannerPreviewMode.ResourceContribution
+                Return "Contributors: " & resourceCount.ToString(CultureInfo.InvariantCulture)
+            Case Else
+                Return "Scheduled Tasks: " & taskCount.ToString(CultureInfo.InvariantCulture)
+        End Select
+    End Function
+
+    Private Shared Function PreviewSecondaryBadgeText(mode As PlannerPreviewMode, totalDuration As Decimal, assignedHours As Decimal) As String
+        Select Case mode
+            Case PlannerPreviewMode.ResourcesUsed, PlannerPreviewMode.ResourceContribution
+                Return "Assigned Hours: " & assignedHours.ToString("0.##", CultureInfo.InvariantCulture) & " hrs"
+            Case Else
+                Return "Project Duration: " & totalDuration.ToString("0.##", CultureInfo.InvariantCulture) & " days"
+        End Select
+    End Function
+
+    Private Function BuildPreviewModel(taskList As List(Of ScheduleTask), mode As PlannerPreviewMode, totalDuration As Decimal, assignedHours As Decimal) As PlannerPreviewModel
+        Select Case mode
+            Case PlannerPreviewMode.ResourcesUsed
+                Dim slices = BuildResourceContributionSlices(taskList, includeZeroValues:=True)
+                Return New PlannerPreviewModel With {
+                    .HeaderText = "Resources used",
+                    .CenterTitle = slices.Count.ToString(CultureInfo.InvariantCulture),
+                    .CenterSubtitle = "resources",
+                    .EmptyText = If(slices.Count > 0, "Assign resource hours to calculate contribution", "No resources selected"),
+                    .Slices = slices
+                }
+            Case PlannerPreviewMode.ResourceContribution
+                Dim slices = BuildResourceContributionSlices(taskList, includeZeroValues:=True)
+                Return New PlannerPreviewModel With {
+                    .HeaderText = "Resource contribution",
+                    .CenterTitle = slices.Count.ToString(CultureInfo.InvariantCulture),
+                    .CenterSubtitle = assignedHours.ToString("0.##", CultureInfo.InvariantCulture) & " hrs",
+                    .EmptyText = If(slices.Count > 0, "Assign resource hours to calculate contribution", "No resource contribution"),
+                    .Slices = slices
+                }
+            Case Else
+                Return New PlannerPreviewModel With {
+                    .HeaderText = "Task count split",
+                    .CenterTitle = taskList.Count.ToString(CultureInfo.InvariantCulture),
+                    .CenterSubtitle = "tasks",
+                    .EmptyText = "No scheduled tasks",
+                    .Slices = taskList.
+                        Where(Function(task) task IsNot Nothing).
+                        Select(Function(task) New PlannerPreviewSlice With {
+                            .Label = task.TaskName,
+                            .Value = 1D
+                        }).
+                        ToList()
+                }
+        End Select
+    End Function
+
+    Private Function BuildResourceContributionSlices(taskList As IEnumerable(Of ScheduleTask), Optional includeZeroValues As Boolean = False) As List(Of PlannerPreviewSlice)
+        Dim totals As New Dictionary(Of String, Decimal)(StringComparer.OrdinalIgnoreCase)
+
+        For Each task In taskList
+            For Each item In ResourceAllocationsForPreview(task)
+                If totals.ContainsKey(item.Key) Then
+                    totals(item.Key) += item.Value
+                Else
+                    totals(item.Key) = item.Value
+                End If
+            Next
+        Next
+
+        Dim items = totals.AsEnumerable()
+        If Not includeZeroValues Then
+            items = items.Where(Function(item) item.Value > 0D)
+        End If
+
+        Return items.
+            OrderByDescending(Function(item) item.Value).
+            ThenBy(Function(item) item.Key, StringComparer.OrdinalIgnoreCase).
+            Select(Function(item) New PlannerPreviewSlice With {
+                .Label = item.Key,
+                .Value = item.Value
+            }).
+            ToList()
+    End Function
+
+    Private Function ResourceAllocationsForPreview(task As ScheduleTask) As Dictionary(Of String, Decimal)
+        Dim allocations = ParseResourceAllocations(task.ResourceAllocations)
+        If allocations.Count > 0 Then
+            Return allocations
+        End If
+
+        Dim resourceNames = ResourceNamesFromAssignment(task.AssignedTo)
+        If resourceNames.Count = 0 Then
+            Return New Dictionary(Of String, Decimal)(StringComparer.OrdinalIgnoreCase)
+        End If
+
+        Return BuildEvenResourceAllocations(resourceNames, task.ResourceHours)
     End Function
 
     Private Function BuildResourceUtilizationHost() As Control
@@ -1053,7 +1214,7 @@ Public Class SMASchedulerForm
         End Try
     End Sub
 
-    Private Function PlannerLegendGrid() As DataGridView
+    Private Function PlannerLegendGrid(mode As PlannerPreviewMode) As DataGridView
         Dim legend As New DataGridView With {
             .AllowUserToAddRows = False,
             .AllowUserToDeleteRows = False,
@@ -1075,15 +1236,16 @@ Public Class SMASchedulerForm
         legend.ColumnHeadersDefaultCellStyle.Font = New Font("Segoe UI Semibold", 9.0F)
         legend.DefaultCellStyle.SelectionBackColor = Color.FromArgb(219, 235, 255)
         legend.DefaultCellStyle.SelectionForeColor = Color.FromArgb(24, 31, 42)
+        legend.Tag = mode
         legend.Columns.Add(New DataGridViewTextBoxColumn With {.DataPropertyName = NameOf(PlannerPreviewRow.ColorName), .HeaderText = "", .Width = 34, .Resizable = DataGridViewTriState.False})
         legend.Columns.Add(New DataGridViewTextBoxColumn With {
-            .DataPropertyName = NameOf(PlannerPreviewRow.TaskName),
-            .HeaderText = "Task",
+            .DataPropertyName = NameOf(PlannerPreviewRow.ItemName),
+            .HeaderText = If(mode = PlannerPreviewMode.TaskDuration, "Task", "Resource"),
             .AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
-            .MinimumWidth = 220,
+            .MinimumWidth = 120,
             .DefaultCellStyle = New DataGridViewCellStyle With {.WrapMode = DataGridViewTriState.True}
         })
-        legend.Columns.Add(New DataGridViewTextBoxColumn With {.DataPropertyName = NameOf(PlannerPreviewRow.DurationText), .HeaderText = "Duration", .Width = 86, .Resizable = DataGridViewTriState.False})
+        legend.Columns.Add(New DataGridViewTextBoxColumn With {.DataPropertyName = NameOf(PlannerPreviewRow.ShareText), .HeaderText = "%", .Width = 62, .Resizable = DataGridViewTriState.False})
         AddHandler legend.CellFormatting, AddressOf PlannerLegendCellFormatting
         AddHandler legend.CellToolTipTextNeeded, AddressOf PlannerLegendToolTipTextNeeded
         Return legend
@@ -1221,6 +1383,16 @@ Public Class SMASchedulerForm
     End Sub
 
     Private Function CreateTemplateScheduleTask(catalogTask As TaskCatalogItem, taskId As Integer, requestedHours As Decimal, startDate As Date) As ScheduleTask
+        Dim predecessorText = catalogTask.Predecessor.Trim()
+        If predecessorText.Equals("Beginning", StringComparison.OrdinalIgnoreCase) OrElse
+            predecessorText.Equals("Updates Begin", StringComparison.OrdinalIgnoreCase) Then
+            predecessorText = ""
+        ElseIf predecessorText.Equals("Previous Task", StringComparison.OrdinalIgnoreCase) Then
+            predecessorText = If(taskId <= 1, "", (taskId - 1).ToString(CultureInfo.InvariantCulture))
+        ElseIf predecessorText.Equals("Create Site Plan", StringComparison.OrdinalIgnoreCase) Then
+            predecessorText = ""
+        End If
+
         Return New ScheduleTask With {
             .TaskId = taskId,
             .DatabaseTaskId = catalogTask.DatabaseTaskId,
@@ -1229,8 +1401,8 @@ Public Class SMASchedulerForm
             .AssignmentDate = startDate,
             .DurationDays = DurationFromHours(requestedHours),
             .PercentComplete = 0,
-            .Predecessors = If(taskId <= 1, "", (taskId - 1).ToString(CultureInfo.InvariantCulture)),
-            .DependencyType = "FS",
+            .Predecessors = predecessorText,
+            .DependencyType = If(String.IsNullOrWhiteSpace(catalogTask.DependencyType), "FS", catalogTask.DependencyType),
             .AssignedTo = "",
             .ResourceNames = "",
             .ResourceAllocations = "",
@@ -1900,26 +2072,37 @@ Public Class SMASchedulerForm
 
         Dim taskList = _tasks.ToList()
         Dim duration = taskList.Sum(Function(task) Math.Max(0D, task.DurationDays))
+        Dim assignedHours = taskList.Sum(Function(task) Math.Max(0D, task.ResourceHours))
+        Dim resourceCount = taskList.
+            SelectMany(Function(task) ResourceAllocationsForPreview(task).Keys).
+            Distinct(StringComparer.OrdinalIgnoreCase).
+            Count()
 
-        For Each chart In _plannerPieCharts
-            If chart IsNot Nothing Then
-                chart.UpdateTasks(taskList)
+        For index = 0 To _plannerPieCharts.Count - 1
+            Dim chart = _plannerPieCharts(index)
+            If chart Is Nothing Then
+                Continue For
+            End If
+
+            Dim model = BuildPreviewModel(taskList, chart.PreviewMode, duration, assignedHours)
+            chart.UpdateModel(model)
+
+            If index < _plannerLegendGrids.Count AndAlso _plannerLegendGrids(index) IsNot Nothing Then
+                _plannerLegendGrids(index).DataSource = BuildPlannerLegendRows(model)
             End If
         Next
 
-        If _plannerLegendGrid IsNot Nothing Then
-            _plannerLegendGrid.DataSource = taskList.Select(Function(task, index) PlannerPreviewRow.FromTask(task, index)).ToList()
-        End If
-
         For Each label In _plannerTaskCountLabels
             If label IsNot Nothing Then
-                label.Text = "Scheduled Tasks: " & taskList.Count.ToString(CultureInfo.InvariantCulture)
+                Dim mode = If(label.Tag Is Nothing, PlannerPreviewMode.TaskDuration, CType(label.Tag, PlannerPreviewMode))
+                label.Text = PreviewPrimaryBadgeText(mode, taskList.Count, assignedHours, resourceCount)
             End If
         Next
 
         For Each label In _plannerDurationLabels
             If label IsNot Nothing Then
-                label.Text = "Duration: " & duration.ToString("0.##", CultureInfo.InvariantCulture) & " days"
+                Dim mode = If(label.Tag Is Nothing, PlannerPreviewMode.TaskDuration, CType(label.Tag, PlannerPreviewMode))
+                label.Text = PreviewSecondaryBadgeText(mode, duration, assignedHours)
             End If
         Next
     End Sub
@@ -1937,17 +2120,37 @@ Public Class SMASchedulerForm
     End Sub
 
     Private Sub PlannerLegendToolTipTextNeeded(sender As Object, e As DataGridViewCellToolTipTextNeededEventArgs)
-        If e.RowIndex < 0 OrElse _plannerLegendGrid Is Nothing Then
+        Dim legend = TryCast(sender, DataGridView)
+        If e.RowIndex < 0 OrElse legend Is Nothing Then
             Return
         End If
 
-        Dim row = TryCast(_plannerLegendGrid.Rows(e.RowIndex).DataBoundItem, PlannerPreviewRow)
+        Dim row = TryCast(legend.Rows(e.RowIndex).DataBoundItem, PlannerPreviewRow)
         If row Is Nothing Then
             Return
         End If
 
-        e.ToolTipText = row.TaskName & " - " & row.DurationText
+        e.ToolTipText = row.ToolTipText
     End Sub
+
+    Private Function BuildPlannerLegendRows(model As PlannerPreviewModel) As List(Of PlannerPreviewRow)
+        Dim slices = If(model?.Slices, New List(Of PlannerPreviewSlice)())
+        Dim total = slices.Sum(Function(slice) Math.Max(0D, slice.Value))
+
+        Return slices.
+            Select(Function(slice, index)
+                       Dim percentage = If(total > 0D, Math.Round((slice.Value / total) * 100D, 1, MidpointRounding.AwayFromZero), 0D)
+                       Dim valueText = slice.Value.ToString("0.##", CultureInfo.InvariantCulture)
+                       Return New PlannerPreviewRow With {
+                           .ColorName = "",
+                           .ItemName = slice.Label,
+                           .ShareText = percentage.ToString("0.#", CultureInfo.InvariantCulture) & "%",
+                           .ValueText = valueText,
+                           .ToolTipText = slice.Label & " - " & percentage.ToString("0.#", CultureInfo.InvariantCulture) & "% (" & valueText & ")"
+                       }
+                   End Function).
+            ToList()
+    End Function
 
     Private Sub UpdateResourceUsageGrid()
         If _resourceUsageGrid Is Nothing Then
@@ -2408,14 +2611,13 @@ Public Class SMASchedulerForm
         If resourceTag IsNot Nothing Then
             _explicitTaskUsageEdits.Add(TaskUsageEditKey(task.TaskId, resourceTag.ResourceName, workDate))
             SetTaskResourceHoursOnDate(task, resourceTag.ResourceName, workDate, requestedHours)
-            If requestedHours > 8D Then
-                MessageBox.Show(Me, "More than 8 hours were planned for " & resourceTag.ResourceName & " on " & workDate.ToString("dd-MMM-yyyy") & ".", "Hours Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning)
-            End If
+            WarnIfResourcesExceedDailyCapacity(workDate, {resourceTag.ResourceName})
             RecalculateAndRefresh("Task usage updated")
             Return
         End If
 
         SetTaskTotalHoursOnDate(task, workDate, requestedHours)
+        WarnIfResourcesExceedDailyCapacity(workDate, ResourceNamesFromAssignment(task.AssignedTo))
         RecalculateAndRefresh("Task usage updated")
     End Sub
 
@@ -2463,10 +2665,42 @@ Public Class SMASchedulerForm
         Dim requestedHours = Math.Max(0D, DecimalCellValue(row.Cells(e.ColumnIndex).Value))
         _explicitTaskUsageEdits.Add(TaskUsageEditKey(task.TaskId, tag.ResourceName, workDate))
         SetTaskResourceHoursOnDate(task, tag.ResourceName, workDate, requestedHours)
-        If requestedHours > 8D Then
-            MessageBox.Show(Me, "More than 8 hours were planned for " & tag.ResourceName & " on " & workDate.ToString("dd-MMM-yyyy") & ".", "Hours Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning)
-        End If
+        WarnIfResourcesExceedDailyCapacity(workDate, {tag.ResourceName})
         RecalculateAndRefresh("Resource usage updated")
+    End Sub
+
+    Private Sub WarnIfResourcesExceedDailyCapacity(workDate As Date, resourceNames As IEnumerable(Of String))
+        If resourceNames Is Nothing Then
+            Return
+        End If
+
+        Dim warnings As New List(Of String)()
+        For Each resourceName In resourceNames.
+            Where(Function(name) Not String.IsNullOrWhiteSpace(name)).
+            Select(Function(name) name.Trim()).
+            Distinct(StringComparer.OrdinalIgnoreCase)
+
+            Dim baseline = ResourceBaselineHours(resourceName, workDate)
+            Dim planned = PlannedHoursForResource(resourceName, workDate)
+            Dim pending = baseline - planned
+
+            If planned > baseline Then
+                warnings.Add(resourceName & ": planned " &
+                    planned.ToString("0.##", CultureInfo.InvariantCulture) & " hrs, available " &
+                    baseline.ToString("0.##", CultureInfo.InvariantCulture) & " hrs, pending " &
+                    pending.ToString("0.##", CultureInfo.InvariantCulture) & " hrs")
+            End If
+        Next
+
+        If warnings.Count = 0 Then
+            Return
+        End If
+
+        Dim message = "This user is exceeding 8 hours or the available daily capacity." &
+            Environment.NewLine & Environment.NewLine &
+            String.Join(Environment.NewLine, warnings)
+
+        MessageBox.Show(Me, message, "Hours Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning)
     End Sub
 
     Private Sub ResourceUtilizationGridCellParsing(sender As Object, e As DataGridViewCellParsingEventArgs)
@@ -3114,14 +3348,12 @@ Public Class SMASchedulerForm
         If _tasks.Count = 0 Then
             _summaryTitle.Text = "0 tasks"
             _summaryDates.Text = "No dates"
-            _summaryProgress.Text = "0% complete"
             _summaryResources.Text = "No resources"
             Return
         End If
 
         Dim startDate = _tasks.Min(Function(t) t.StartDate)
         Dim finishDate = _tasks.Max(Function(t) t.FinishDate)
-        Dim progress = CInt(Math.Round(_tasks.Average(Function(t) t.PercentComplete)))
         Dim assignedHours = _tasks.Sum(Function(t) t.ResourceHours)
         Dim resourceCount = _tasks.SelectMany(Function(t) t.ResourceNames.Split({","c, ";"c}, StringSplitOptions.RemoveEmptyEntries)).
             Select(Function(r) r.Trim()).
@@ -3131,7 +3363,6 @@ Public Class SMASchedulerForm
 
         _summaryTitle.Text = _tasks.Count & " tasks"
         _summaryDates.Text = startDate.ToString("dd MMM") & " - " & finishDate.ToString("dd MMM yyyy")
-        _summaryProgress.Text = progress & "% complete / " & assignedHours.ToString("0.##") & " hrs"
         _summaryResources.Text = resourceCount & " resources / " & assignedHours.ToString("0.##") & " hrs"
         UpdateRemainingHoursDisplay()
     End Sub
@@ -4240,14 +4471,35 @@ Public Module GraphicsExtensions
 End Module
 
 
+Public Enum PlannerPreviewMode
+    TaskDuration = 0
+    ResourcesUsed = 1
+    ResourceContribution = 2
+End Enum
+
+Public Class PlannerPreviewSlice
+    Public Property Label As String = ""
+    Public Property Value As Decimal
+End Class
+
+Public Class PlannerPreviewModel
+    Public Property HeaderText As String = "Planner Preview"
+    Public Property CenterTitle As String = "0"
+    Public Property CenterSubtitle As String = "0"
+    Public Property EmptyText As String = "No scheduled tasks"
+    Public Property Slices As New List(Of PlannerPreviewSlice)
+End Class
+
 Public Class PlannerPieChartPanel
     Inherits Panel
 
-    Private _tasks As List(Of ScheduleTask)
+    Public Property PreviewMode As PlannerPreviewMode = PlannerPreviewMode.TaskDuration
+
+    Private _model As New PlannerPreviewModel()
     Private ReadOnly _motionTimer As System.Windows.Forms.Timer
     Private _animationProgress As Single = 1.0F
     Private _pulsePhase As Single = 0.0F
-    Private _taskSignature As String = ""
+    Private _modelSignature As String = ""
 
     Private Shared ReadOnly SliceColors As Color() = {
         Color.FromArgb(45, 125, 221),
@@ -4260,10 +4512,8 @@ Public Class PlannerPieChartPanel
         Color.FromArgb(132, 204, 22)
     }
 
-    Public Sub New(tasks As IEnumerable(Of ScheduleTask))
+    Public Sub New()
         DoubleBuffered = True
-        _tasks = tasks.OrderBy(Function(task) task.TaskId).ToList()
-        _taskSignature = BuildTaskSignature(_tasks)
         _motionTimer = New System.Windows.Forms.Timer With {.Interval = 35}
         AddHandler _motionTimer.Tick, AddressOf MotionTimerTick
         ResetMotion()
@@ -4273,20 +4523,26 @@ Public Class PlannerPieChartPanel
         Return SliceColors(index Mod SliceColors.Length)
     End Function
 
-    Public Sub UpdateTasks(tasks As IEnumerable(Of ScheduleTask))
-        Dim nextTasks = tasks.OrderBy(Function(task) task.TaskId).ToList()
-        Dim nextSignature = BuildTaskSignature(nextTasks)
-        Dim taskSetChanged = Not String.Equals(_taskSignature, nextSignature, StringComparison.Ordinal)
-        _tasks = nextTasks
-        _taskSignature = nextSignature
-        If taskSetChanged Then
+    Public Sub UpdateModel(model As PlannerPreviewModel)
+        Dim nextModel = If(model, New PlannerPreviewModel())
+        Dim nextSignature = BuildModelSignature(nextModel)
+        Dim changed = Not String.Equals(_modelSignature, nextSignature, StringComparison.Ordinal)
+        _model = nextModel
+        _modelSignature = nextSignature
+        If changed Then
             ResetMotion()
         End If
         Invalidate()
     End Sub
 
-    Private Shared Function BuildTaskSignature(tasks As IEnumerable(Of ScheduleTask)) As String
-        Return String.Join("|", tasks.Select(Function(task) task.TaskId.ToString(CultureInfo.InvariantCulture) & ":" & task.TaskName & ":" & task.DurationDays.ToString("0.###", CultureInfo.InvariantCulture)))
+    Private Shared Function BuildModelSignature(model As PlannerPreviewModel) As String
+        If model Is Nothing Then
+            Return ""
+        End If
+
+        Return String.Join("|",
+            {model.HeaderText, model.CenterTitle, model.CenterSubtitle, model.EmptyText}.
+            Concat(model.Slices.Select(Function(item) item.Label & ":" & item.Value.ToString("0.###", CultureInfo.InvariantCulture))))
     End Function
 
     Private Sub ResetMotion()
@@ -4321,9 +4577,10 @@ Public Class PlannerPieChartPanel
         e.Graphics.SmoothingMode = SmoothingMode.AntiAlias
         e.Graphics.Clear(Color.White)
 
-        Dim totalDuration = _tasks.Sum(Function(task) Math.Max(0.01F, CSng(task.DurationDays)))
-        If totalDuration <= 0 Then
-            DrawEmpty(e.Graphics)
+        Dim slices = If(_model.Slices, New List(Of PlannerPreviewSlice)())
+        Dim totalValue = slices.Sum(Function(item) Math.Max(0D, item.Value))
+        If totalValue <= 0D Then
+            DrawEmpty(e.Graphics, _model.EmptyText)
             Return
         End If
 
@@ -4336,7 +4593,7 @@ Public Class PlannerPieChartPanel
         Dim diameter = Math.Min(ClientSize.Width - (sidePadding * 2), drawingHeight)
 
         If diameter < 28 Then
-            DrawCenteredText(e.Graphics, _tasks.Count.ToString(CultureInfo.InvariantCulture) & " tasks", New Font("Segoe UI Semibold", 9.0F), Color.FromArgb(24, 31, 42), ClientRectangle)
+            DrawCenteredText(e.Graphics, _model.CenterTitle, New Font("Segoe UI Semibold", 9.0F), Color.FromArgb(24, 31, 42), ClientRectangle)
             Return
         End If
 
@@ -4344,8 +4601,11 @@ Public Class PlannerPieChartPanel
 
         Dim startAngle As Single = -90.0F
         Dim remainingSweep As Single = 360.0F * EaseOutCubic(_animationProgress)
-        For i = 0 To _tasks.Count - 1
-            Dim sweep = CSng(Math.Max(0.01D, _tasks(i).DurationDays) / CDec(totalDuration) * 360D)
+        For i = 0 To slices.Count - 1
+            If slices(i).Value <= 0D Then
+                Continue For
+            End If
+            Dim sweep = CSng(slices(i).Value / totalValue * 360D)
             Dim visibleSweep = Math.Min(sweep, remainingSweep)
             If visibleSweep <= 0 Then
                 Exit For
@@ -4375,17 +4635,17 @@ Public Class PlannerPieChartPanel
             e.Graphics.FillEllipse(brush, innerBounds)
         End Using
 
-        Dim title = _tasks.Count.ToString(CultureInfo.InvariantCulture)
-        Dim subtitle = totalDuration.ToString("0.##", CultureInfo.InvariantCulture) & " days"
+        Dim title = If(String.IsNullOrWhiteSpace(_model.CenterTitle), "0", _model.CenterTitle)
+        Dim subtitle = If(String.IsNullOrWhiteSpace(_model.CenterSubtitle), "", _model.CenterSubtitle)
         Dim titleFontSize = CSng(Math.Max(9.0R, Math.Min(28.0R, diameter / 5.6R)))
         Dim subtitleFontSize = CSng(Math.Max(7.0R, Math.Min(12.0R, diameter / 15.5R)))
         Dim centerTitleTop = innerBounds.Top + CInt(innerBounds.Height * If(compact, 0.16R, 0.24R))
         DrawCenteredText(e.Graphics, title, New Font("Segoe UI Semibold", titleFontSize), Color.FromArgb(24, 31, 42), New Rectangle(innerBounds.Left, centerTitleTop, innerBounds.Width, Math.Max(18, CInt(innerBounds.Height * 0.28R))))
-        If diameter >= 62 Then
+        If diameter >= 62 AndAlso subtitle.Length > 0 Then
             DrawCenteredText(e.Graphics, subtitle, New Font("Segoe UI", subtitleFontSize), Color.FromArgb(75, 85, 99), New Rectangle(innerBounds.Left, centerTitleTop + Math.Max(18, CInt(innerBounds.Height * 0.25R)), innerBounds.Width, Math.Max(16, CInt(innerBounds.Height * 0.22R))))
         End If
         If Not compact Then
-            DrawCenteredText(e.Graphics, "Task duration split", New Font("Segoe UI Semibold", 12.0F), Color.FromArgb(24, 31, 42), New Rectangle(0, 4, ClientSize.Width, titleHeight))
+            DrawCenteredText(e.Graphics, _model.HeaderText, New Font("Segoe UI Semibold", 12.0F), Color.FromArgb(24, 31, 42), New Rectangle(0, 4, ClientSize.Width, titleHeight))
         End If
     End Sub
 
@@ -4395,8 +4655,8 @@ Public Class PlannerPieChartPanel
         Return 1.0F - (inverse * inverse * inverse)
     End Function
 
-    Private Sub DrawEmpty(graphics As Graphics)
-        DrawCenteredText(graphics, "No scheduled tasks", New Font("Segoe UI Semibold", 13.0F), Color.DimGray, ClientRectangle)
+    Private Sub DrawEmpty(graphics As Graphics, message As String)
+        DrawCenteredText(graphics, If(String.IsNullOrWhiteSpace(message), "No scheduled tasks", message), New Font("Segoe UI Semibold", 13.0F), Color.DimGray, ClientRectangle)
     End Sub
 
     Private Sub DrawCenteredText(graphics As Graphics, text As String, font As Font, color As Color, bounds As Rectangle)
@@ -4419,16 +4679,8 @@ End Class
 
 Public Class PlannerPreviewRow
     Public Property ColorName As String = ""
-    Public Property TaskName As String = ""
-    Public Property DurationText As String = ""
-    Public Property DateRange As String = ""
-
-    Public Shared Function FromTask(task As ScheduleTask, index As Integer) As PlannerPreviewRow
-        Return New PlannerPreviewRow With {
-            .ColorName = "",
-            .TaskName = task.TaskName,
-            .DurationText = task.DurationDays.ToString("0.##", CultureInfo.InvariantCulture) & " days",
-            .DateRange = task.StartDate.ToString("dd-MMM", CultureInfo.InvariantCulture) & " - " & task.FinishDate.ToString("dd-MMM-yyyy", CultureInfo.InvariantCulture)
-        }
-    End Function
+    Public Property ItemName As String = ""
+    Public Property ShareText As String = ""
+    Public Property ValueText As String = ""
+    Public Property ToolTipText As String = ""
 End Class

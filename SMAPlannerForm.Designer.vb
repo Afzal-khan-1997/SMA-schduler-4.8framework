@@ -148,7 +148,7 @@ Partial Class SMAPlannerForm
         Me.selectorLabel.Name = "selectorLabel"
         Me.selectorLabel.Size = New System.Drawing.Size(85, 20)
         Me.selectorLabel.TabIndex = 6
-        Me.selectorLabel.Text = "Live Project"
+        Me.selectorLabel.Text = "Template"
         '
         '_liveProjectSelector
         '
