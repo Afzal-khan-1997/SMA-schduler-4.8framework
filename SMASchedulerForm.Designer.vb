@@ -84,7 +84,7 @@ Partial Class SMASchedulerForm
         Me.commandBar.BackColor = System.Drawing.Color.FromArgb(CType(CType(35, Byte), Integer), CType(CType(46, Byte), Integer), CType(CType(66, Byte), Integer))
         Me.commandBar.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden
         Me.commandBar.ImageScalingSize = New System.Drawing.Size(18, 18)
-        Me.commandBar.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.btnSave, Me.btnRefreshCapacity, Me.sepFile, Me.btnAddTask, Me.btnDelete, Me.btnMoveUp, Me.btnMoveDown, Me.sepTasks, Me.btnLink, Me.btnUnlink, Me.btnMilestone, Me.sepTheme, Me.btnChangeTheme})
+        Me.commandBar.Items.AddRange(New System.Windows.Forms.ToolStripItem() {Me.btnSave, Me.btnRefreshCapacity, Me.sepFile, Me.btnAddTask, Me.btnDelete, Me.btnMoveUp, Me.btnMoveDown, Me.sepTasks, Me.btnLink, Me.btnUnlink, Me.btnMilestone})
         Me.commandBar.Location = New System.Drawing.Point(0, 0)
         Me.commandBar.Name = "commandBar"
         Me.commandBar.Padding = New System.Windows.Forms.Padding(11, 9, 11, 9)

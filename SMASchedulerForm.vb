@@ -1,4 +1,5 @@
 Imports System.ComponentModel
+Imports System.ComponentModel.Design
 Imports System.Configuration
 Imports System.Drawing.Drawing2D
 Imports System.Globalization
@@ -33,7 +34,7 @@ Public Class SMASchedulerForm
     Private ReadOnly _plannerLegendGrids As New List(Of DataGridView)
     Private ReadOnly _plannerTaskCountLabels As New List(Of Label)
     Private ReadOnly _plannerDurationLabels As New List(Of Label)
-    Private _currentTheme As SchedulerThemePalette = SchedulerThemePalette.ThemeByName(SchedulerThemePreferences.LoadThemeName())
+    Private _currentTheme As SchedulerThemePalette = SchedulerThemePalette.ThemeByName("Dusk")
     Private _projectType As String = "New"
     Private ReadOnly _capacityDateColumns As New Dictionary(Of Integer, Date)
     Private ReadOnly _taskViewDateColumns As New Dictionary(Of Integer, Date)
@@ -59,9 +60,14 @@ Public Class SMASchedulerForm
         _employeeCatalogService = New EmployeeCatalogService(_sqlRepository)
         InitializeComponent()
         ConfigureDesignerUi()
+        If IsInDesignerHost() Then
+            SeedSchedulerDesignerData()
+        End If
         AddHandler _tasks.ListChanged, AddressOf TasksChanged
         RecalculateAndRefresh("Ready")
-        ClearPlanningInputDisplays()
+        If Not IsInDesignerHost() Then
+            ClearPlanningInputDisplays()
+        End If
         MarkCurrentStateSaved()
     End Sub
 
@@ -84,6 +90,10 @@ Public Class SMASchedulerForm
         End If
 
         Return New SqlProjectRepository(connectionString.Trim())
+    End Function
+
+    Private Shared Function IsInDesignerHost() As Boolean
+        Return LicenseManager.UsageMode = LicenseUsageMode.Designtime
     End Function
 
     Public Sub StartNewProject()
@@ -178,7 +188,7 @@ Public Class SMASchedulerForm
         _grid.DataSource = _tasks
         ApplySchedulerHeaderLayout()
         AddHandler headerPanel.SizeChanged, Sub() LayoutSchedulerHeaderActions()
-        ApplyTheme()
+        ApplyProjectStateTheme()
         AddHandler _grid.SelectionChanged, AddressOf ScheduleSelectionChanged
         AddHandler btnSave.Click, AddressOf SaveProjectFile
         AddHandler btnRefreshCapacity.Click, AddressOf RefreshCapacityPlanning
@@ -189,32 +199,11 @@ Public Class SMASchedulerForm
         AddHandler btnLink.Click, AddressOf LinkSelectedTask
         AddHandler btnUnlink.Click, AddressOf UnlinkSelectedTask
         AddHandler btnMilestone.Click, AddressOf ToggleMilestone
-        AddHandler btnChangeTheme.Click, AddressOf ChangeTheme
         AddHandler _totalProjectHours.ValueChanged, AddressOf ProjectInputsChanged
         AddHandler _resourcesNeeded.ValueChanged, AddressOf ProjectInputsChanged
         AddHandler _includeSaturdays.CheckedChanged, AddressOf AllocationInputsChanged
         AddHandler _taskCatalogSelector.SelectedIndexChanged, AddressOf CatalogSelectionChanged
         AddHandler _projectSizeSelector.SelectedIndexChanged, AddressOf CatalogSelectionChanged
-    End Sub
-
-    Private Sub ChangeTheme(sender As Object, e As EventArgs)
-        Dim themeNames = SchedulerThemePalette.AllNames().Select(Function(name) Convert.ToString(name, CultureInfo.InvariantCulture)).ToList()
-        If themeNames.Count = 0 Then
-            Return
-        End If
-
-        Dim currentIndex = themeNames.FindIndex(Function(name) String.Equals(name, _currentTheme.Name, StringComparison.OrdinalIgnoreCase))
-        Dim nextIndex = If(currentIndex < 0, 0, (currentIndex + 1) Mod themeNames.Count)
-        _currentTheme = SchedulerThemePalette.ThemeByName(themeNames(nextIndex))
-        SchedulerThemePreferences.SaveThemeName(_currentTheme.Name)
-        ApplyTheme()
-        _gantt.Invalidate()
-        For Each chart In _plannerPieCharts
-            If chart IsNot Nothing Then
-                chart.Invalidate()
-            End If
-        Next
-        SetStatus("Theme changed to " & _currentTheme.Name)
     End Sub
 
     Private Sub ApplySchedulerHeaderLayout()
@@ -332,6 +321,52 @@ Public Class SMASchedulerForm
 
         SaveProjectToSql(showSuccessMessage:=True)
     End Sub
+
+    Private Sub ApplyProjectStateTheme()
+        _currentTheme = DetermineProjectStateTheme()
+        ApplyTheme()
+    End Sub
+
+    Private Function DetermineProjectStateTheme() As SchedulerThemePalette
+        If HasDailyCapacityOverrun() Then
+            Return SchedulerThemePalette.ThemeByName("Alert")
+        End If
+
+        If String.Equals(_projectType, "Update", StringComparison.OrdinalIgnoreCase) OrElse
+            String.Equals(_projectType, "Feedback", StringComparison.OrdinalIgnoreCase) Then
+            Return SchedulerThemePalette.ThemeByName("Reschedule")
+        End If
+
+        Dim totalProjectHours = If(_totalProjectHours Is Nothing, 0D, _totalProjectHours.Value)
+        Dim assignedHours = _tasks.Sum(Function(task) task.ResourceHours)
+        If totalProjectHours > 0D AndAlso assignedHours >= totalProjectHours AndAlso _tasks.Count > 0 Then
+            Return SchedulerThemePalette.ThemeByName("Complete")
+        End If
+
+        Return SchedulerThemePalette.ThemeByName("Dusk")
+    End Function
+
+    Private Function HasDailyCapacityOverrun() As Boolean
+        For Each task In _tasks
+            If task Is Nothing OrElse String.IsNullOrWhiteSpace(task.AssignedTo) Then
+                Continue For
+            End If
+
+            For Each resourceName In ResourceNamesFromAssignment(task.AssignedTo)
+                If resourceName.Length = 0 Then
+                    Continue For
+                End If
+
+                For Each workDate In WorkingDatesForTask(task.StartDate.Date, task.FinishDate.Date)
+                    If PendingHoursForResource(resourceName, workDate) < 0D Then
+                        Return True
+                    End If
+                Next
+            Next
+        Next
+
+        Return False
+    End Function
 
     Private Sub ApplyTheme()
         Dim theme = _currentTheme
@@ -456,16 +491,26 @@ Public Class SMASchedulerForm
     Private Sub LoadCatalogControls()
         _isLoadingCatalogControls = True
         _taskCatalog.Clear()
-        For Each item In _taskCatalogService.LoadAvailableTasks()
-            _taskCatalog.Add(item)
-        Next
-
         _employees.Clear()
-        For Each employeeName In _employeeCatalogService.LoadEmployees()
-            If Not _employees.Contains(employeeName) Then
+        If IsInDesignerHost() Then
+            For Each item In DesignerTaskCatalog()
+                _taskCatalog.Add(item)
+            Next
+
+            For Each employeeName In {"Devarajan", "Mahaboob Basha", "Aashiq Aliuddin", "Mohammed Bilal"}
                 _employees.Add(employeeName)
-            End If
-        Next
+            Next
+        Else
+            For Each item In _taskCatalogService.LoadAvailableTasks()
+                _taskCatalog.Add(item)
+            Next
+
+            For Each employeeName In _employeeCatalogService.LoadEmployees()
+                If Not _employees.Contains(employeeName) Then
+                    _employees.Add(employeeName)
+                End If
+            Next
+        End If
 
         _taskCatalogSelector.DataSource = _taskCatalog
         _taskCatalogSelector.DisplayMember = NameOf(TaskCatalogItem.Title)
@@ -477,9 +522,18 @@ Public Class SMASchedulerForm
         RecalculateAndRefresh("Working days updated")
     End Sub
 
+    Private Shared Function DesignerTaskCatalog() As IEnumerable(Of TaskCatalogItem)
+        Return New List(Of TaskCatalogItem) From {
+            New TaskCatalogItem With {.DatabaseTaskId = 1, .Title = "Scope", .DependencyType = "FS", .SmallHours = 4D, .Assignee = "Devarajan", .ModuleId = 1},
+            New TaskCatalogItem With {.DatabaseTaskId = 2, .Title = "Gathering of Inputs", .DependencyType = "FS", .SmallHours = 8D, .Assignee = "Mahaboob Basha", .ModuleId = 1},
+            New TaskCatalogItem With {.DatabaseTaskId = 3, .Title = "3D Modelling", .DependencyType = "FS", .SmallHours = 12D, .Assignee = "Aashiq Aliuddin", .ModuleId = 4}
+        }
+    End Function
+
     Private Sub ProjectInputsChanged(sender As Object, e As EventArgs)
         UpdateSummary()
         UpdateProjectMetadataDisplay()
+        ApplyProjectStateTheme()
         SetStatus("Project planning values updated")
     End Sub
 
@@ -1280,6 +1334,19 @@ Public Class SMASchedulerForm
         _tasks.Add(New ScheduleTask With {.TaskId = 1, .DatabaseTaskId = 1, .TaskName = "Input study and Copy files to M Files", .StartDate = Date.Today, .AssignmentDate = Date.Today, .DurationDays = 1, .PercentComplete = 0, .AssignedTo = "Devarajan", .ResourceNames = "Devarajan", .ResourceAllocations = "Devarajan=8", .ResourceHours = 8, .ModuleId = 1})
         _tasks.Add(New ScheduleTask With {.TaskId = 2, .DatabaseTaskId = 6, .TaskName = "Create Scope of work", .StartDate = Date.Today, .AssignmentDate = Date.Today, .DurationDays = DurationFromHours(16D), .PercentComplete = 0, .Predecessors = "1", .AssignedTo = "Mahaboob Basha", .ResourceNames = "Mahaboob Basha", .ResourceAllocations = "Mahaboob Basha=16", .ResourceHours = 16, .ModuleId = 1})
         _tasks.Add(New ScheduleTask With {.TaskId = 3, .DatabaseTaskId = 28, .TaskName = "3D Modeling Proposed", .StartDate = Date.Today, .AssignmentDate = Date.Today, .DurationDays = DurationFromHours(12D), .Predecessors = "2", .AssignedTo = "Aashiq Aliuddin", .ResourceNames = "Aashiq Aliuddin", .ResourceAllocations = "Aashiq Aliuddin=12", .ResourceHours = 12, .ModuleId = 4})
+    End Sub
+
+    Private Sub SeedSchedulerDesignerData()
+        If _tasks.Count > 0 Then
+            Return
+        End If
+
+        ResetWorkspaceTransientState()
+        _projectName.Text = "SMA Scheduler"
+        _versionNumber.Text = "1.0"
+        _projectType = "New"
+        SelectProjectSize("Small")
+        SeedProject()
     End Sub
 
     Private Sub NewProject(sender As Object, e As EventArgs)
@@ -3338,6 +3405,7 @@ Public Class SMASchedulerForm
             UpdateSummary()
             RefreshWorkspaceTabs()
             UpdateEmbeddedPlannerPreview()
+            ApplyProjectStateTheme()
             SetStatus(message)
         Finally
             _isRecalculating = False
@@ -3632,6 +3700,86 @@ Public Class SchedulerThemePalette
 
     Private Shared Function Themes() As List(Of SchedulerThemePalette)
         Return New List(Of SchedulerThemePalette) From {
+            New SchedulerThemePalette With {
+                .Name = "Dusk",
+                .WindowBack = Color.FromArgb(251, 247, 241),
+                .PanelBack = Color.White,
+                .HeaderBack = Color.FromArgb(255, 236, 214),
+                .CommandBack = Color.FromArgb(111, 63, 53),
+                .CommandText = Color.White,
+                .GridHeader = Color.FromArgb(111, 63, 53),
+                .GridLine = Color.FromArgb(236, 226, 214),
+                .Selection = Color.FromArgb(255, 223, 186),
+                .AlternatingRow = Color.FromArgb(255, 251, 246),
+                .Text = Color.FromArgb(51, 37, 31),
+                .MutedText = Color.FromArgb(110, 82, 72),
+                .Action = Color.FromArgb(214, 96, 58),
+                .Divider = Color.FromArgb(230, 214, 199),
+                .TileOne = Color.FromArgb(224, 245, 232),
+                .TileTwo = Color.FromArgb(255, 236, 190),
+                .TileThree = Color.FromArgb(221, 238, 255),
+                .TileFour = Color.FromArgb(252, 214, 226)
+            },
+            New SchedulerThemePalette With {
+                .Name = "Complete",
+                .WindowBack = Color.FromArgb(242, 250, 245),
+                .PanelBack = Color.White,
+                .HeaderBack = Color.FromArgb(219, 244, 228),
+                .CommandBack = Color.FromArgb(34, 99, 66),
+                .CommandText = Color.White,
+                .GridHeader = Color.FromArgb(34, 99, 66),
+                .GridLine = Color.FromArgb(219, 236, 226),
+                .Selection = Color.FromArgb(210, 244, 223),
+                .AlternatingRow = Color.FromArgb(248, 253, 250),
+                .Text = Color.FromArgb(28, 53, 39),
+                .MutedText = Color.FromArgb(71, 108, 84),
+                .Action = Color.FromArgb(22, 163, 74),
+                .Divider = Color.FromArgb(208, 227, 216),
+                .TileOne = Color.FromArgb(210, 244, 223),
+                .TileTwo = Color.FromArgb(233, 248, 214),
+                .TileThree = Color.FromArgb(215, 240, 224),
+                .TileFour = Color.FromArgb(198, 235, 214)
+            },
+            New SchedulerThemePalette With {
+                .Name = "Alert",
+                .WindowBack = Color.FromArgb(254, 245, 245),
+                .PanelBack = Color.White,
+                .HeaderBack = Color.FromArgb(254, 226, 226),
+                .CommandBack = Color.FromArgb(127, 29, 29),
+                .CommandText = Color.White,
+                .GridHeader = Color.FromArgb(127, 29, 29),
+                .GridLine = Color.FromArgb(241, 214, 214),
+                .Selection = Color.FromArgb(254, 215, 215),
+                .AlternatingRow = Color.FromArgb(255, 250, 250),
+                .Text = Color.FromArgb(81, 31, 31),
+                .MutedText = Color.FromArgb(127, 69, 69),
+                .Action = Color.FromArgb(220, 38, 38),
+                .Divider = Color.FromArgb(233, 205, 205),
+                .TileOne = Color.FromArgb(254, 226, 226),
+                .TileTwo = Color.FromArgb(255, 237, 213),
+                .TileThree = Color.FromArgb(255, 220, 220),
+                .TileFour = Color.FromArgb(254, 205, 211)
+            },
+            New SchedulerThemePalette With {
+                .Name = "Reschedule",
+                .WindowBack = Color.FromArgb(245, 246, 254),
+                .PanelBack = Color.White,
+                .HeaderBack = Color.FromArgb(227, 232, 255),
+                .CommandBack = Color.FromArgb(55, 65, 138),
+                .CommandText = Color.White,
+                .GridHeader = Color.FromArgb(55, 65, 138),
+                .GridLine = Color.FromArgb(223, 228, 244),
+                .Selection = Color.FromArgb(218, 226, 255),
+                .AlternatingRow = Color.FromArgb(249, 250, 255),
+                .Text = Color.FromArgb(34, 42, 84),
+                .MutedText = Color.FromArgb(85, 93, 135),
+                .Action = Color.FromArgb(79, 70, 229),
+                .Divider = Color.FromArgb(214, 220, 239),
+                .TileOne = Color.FromArgb(224, 235, 255),
+                .TileTwo = Color.FromArgb(240, 232, 255),
+                .TileThree = Color.FromArgb(221, 232, 255),
+                .TileFour = Color.FromArgb(236, 225, 255)
+            },
             New SchedulerThemePalette With {
                 .Name = "Fresh",
                 .WindowBack = Color.FromArgb(244, 246, 249),

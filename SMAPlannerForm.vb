@@ -1,6 +1,7 @@
 Imports System.ComponentModel
 Imports System.Configuration
 Imports System.Globalization
+Imports System.ComponentModel.Design
 
 Public Class SMAPlannerForm
     Inherits Form
@@ -12,15 +13,20 @@ Public Class SMAPlannerForm
     Private ReadOnly _liveProjects As New BindingList(Of LiveProjectItem)()
     Private ReadOnly _searchProjectMatches As New List(Of LiveProjectItem)()
     Private _selectedSearchProject As LiveProjectItem
-    Private _currentTheme As SchedulerThemePalette = SchedulerThemePalette.ThemeByName(SchedulerThemePreferences.LoadThemeName())
+    Private _currentTheme As SchedulerThemePalette = SchedulerThemePalette.ThemeByName("Dusk")
+    Private _isUpdatingSearchText As Boolean
 
     Public Sub New()
         _liveProjectCatalog = New LiveProjectCatalogService(_sqlRepository)
         InitializeComponent()
         ConfigurePlannerForm()
+        If IsInDesignerHost() Then
+            SeedPlannerDesignerData()
+        Else
+            LoadProjectList()
+            LoadLiveProjectList()
+        End If
         ApplyCurrentTheme()
-        LoadProjectList()
-        LoadLiveProjectList()
     End Sub
 
     Private Sub ConfigurePlannerForm()
@@ -43,6 +49,7 @@ Public Class SMAPlannerForm
         AddHandler btnNewProject.Click, AddressOf OpenNewProject
         AddHandler btnRefreshList.Click, Sub() RefreshPlannerLists()
         AddHandler btnScheduleProject.Click, AddressOf OpenSelectedLiveProjectTemplate
+        AddHandler btnRescheduleProject.Click, AddressOf OpenSelectedSearchProject
         AddHandler _liveProjectSearchBox.TextChanged, AddressOf LiveProjectSearchTextChanged
         AddHandler _liveProjectSearchBox.KeyDown, AddressOf LiveProjectSearchKeyDown
         AddHandler _liveProjectSelector.SelectedIndexChanged, AddressOf LiveProjectSelectionChanged
@@ -89,7 +96,7 @@ Public Class SMAPlannerForm
     End Sub
 
     Private Sub ApplyCurrentTheme()
-        _currentTheme = SchedulerThemePalette.ThemeByName(SchedulerThemePreferences.LoadThemeName())
+        _currentTheme = DeterminePlannerTheme()
         Dim theme = _currentTheme
 
         If theme Is Nothing OrElse IsDisposed Then
@@ -110,7 +117,7 @@ Public Class SMAPlannerForm
             planningSummaryPanel.BackColor = theme.PanelBack
         End If
 
-        For Each label In New Label() {titleLabel, promptLabel, listTitle, summaryTitleLabel, _liveProjectSizeLabel}
+        For Each label In New Label() {titleLabel, listTitle, summaryTitleLabel, _liveProjectSizeLabel, projectTypeValueLabel}
             If ControlReady(label) Then
                 label.ForeColor = theme.Text
             End If
@@ -120,25 +127,21 @@ Public Class SMAPlannerForm
             _status.ForeColor = theme.MutedText
         End If
 
-        For Each label In New Label() {searchLabel, selectorLabel, summaryPeriodLabel}
+        For Each label In New Label() {searchLabel, selectorLabel, summaryPeriodLabel, projectTypeCaptionLabel}
             If ControlReady(label) Then
                 label.ForeColor = theme.MutedText
             End If
         Next
 
-        If ControlReady(btnNewProject) Then
-            btnNewProject.BackColor = theme.Action
-        End If
-
         If ControlReady(btnScheduleProject) Then
             btnScheduleProject.BackColor = theme.Action
         End If
 
-        If ControlReady(btnRefreshList) Then
-            btnRefreshList.BackColor = theme.CommandBack
+        If ControlReady(btnRescheduleProject) Then
+            btnRescheduleProject.BackColor = theme.CommandBack
         End If
 
-        For Each button In New Button() {btnNewProject, btnScheduleProject, btnRefreshList}
+        For Each button In New Button() {btnScheduleProject, btnRescheduleProject}
             If ControlReady(button) Then
                 button.ForeColor = Color.White
             End If
@@ -186,6 +189,10 @@ Public Class SMAPlannerForm
         End If
     End Sub
 
+    Private Function DeterminePlannerTheme() As SchedulerThemePalette
+        Return SchedulerThemePalette.ThemeByName("Dusk")
+    End Function
+
     Private Shared Function ControlReady(control As Control) As Boolean
         Return control IsNot Nothing AndAlso Not control.IsDisposed
     End Function
@@ -228,6 +235,9 @@ Public Class SMAPlannerForm
     End Sub
 
     Private Sub LiveProjectSearchTextChanged(sender As Object, e As EventArgs)
+        If _isUpdatingSearchText Then
+            Return
+        End If
         RefreshSearchProjectSuggestions()
         UpdateLiveProjectSizeLabel()
     End Sub
@@ -391,7 +401,8 @@ Public Class SMAPlannerForm
         Dim selectedProject = ResolveSearchProject(False)
 
         If selectedTemplate Is Nothing AndAlso selectedProject Is Nothing Then
-            _liveProjectSizeLabel.Text = "No project found"
+            _liveProjectSizeLabel.Text = "Project size: Small"
+            projectTypeValueLabel.Text = "New"
             Return
         End If
 
@@ -404,10 +415,16 @@ Public Class SMAPlannerForm
             If(selectedProject Is Nothing, "", selectedProject.ProjectType),
             "New")
 
-        _liveProjectSizeLabel.Text = "Project size: " & sizeText & " | Type: " & typeText
+        _liveProjectSizeLabel.Text = "Project size: " & sizeText
+        projectTypeValueLabel.Text = typeText
     End Sub
 
     Private Sub LiveProjectSearchKeyDown(sender As Object, e As KeyEventArgs)
+        If e.KeyCode = Keys.Back Then
+            HandleSearchBoxBackspace(e)
+            Return
+        End If
+
         If e.KeyCode <> Keys.Enter Then
             Return
         End If
@@ -418,12 +435,34 @@ Public Class SMAPlannerForm
         Dim matchedProject = ResolveSearchProject(True)
         If matchedProject IsNot Nothing Then
             _selectedSearchProject = matchedProject
-            _liveProjectSearchBox.Text = matchedProject.ProjectName
-            _liveProjectSearchBox.SelectionStart = _liveProjectSearchBox.TextLength
-            _liveProjectSearchBox.SelectionLength = 0
+            ReplaceSearchText(matchedProject.ProjectName)
         End If
 
         UpdateLiveProjectSizeLabel()
+    End Sub
+
+    Private Sub HandleSearchBoxBackspace(e As KeyEventArgs)
+        If _isUpdatingSearchText OrElse _liveProjectSearchBox.SelectionLength <= 0 Then
+            Return
+        End If
+
+        Dim selectionStart = _liveProjectSearchBox.SelectionStart
+        Dim currentText = _liveProjectSearchBox.Text
+        Dim updatedText = If(selectionStart <= 0, "", currentText.Substring(0, selectionStart - 1))
+        ReplaceSearchText(updatedText)
+        e.Handled = True
+        e.SuppressKeyPress = True
+    End Sub
+
+    Private Sub ReplaceSearchText(value As String)
+        _isUpdatingSearchText = True
+        Try
+            _liveProjectSearchBox.Text = value
+            _liveProjectSearchBox.SelectionStart = _liveProjectSearchBox.TextLength
+            _liveProjectSearchBox.SelectionLength = 0
+        Finally
+            _isUpdatingSearchText = False
+        End Try
     End Sub
 
     Private Sub OpenNewProject(sender As Object, e As EventArgs)
@@ -433,6 +472,17 @@ Public Class SMAPlannerForm
         End Using
         ApplyCurrentTheme()
         RefreshPlannerLists()
+    End Sub
+
+    Private Sub OpenSelectedSearchProject(sender As Object, e As EventArgs)
+        Dim matchedProject = ResolveSearchProject(True)
+        If matchedProject Is Nothing OrElse matchedProject.SavedProjectId <= 0 Then
+            MessageBox.Show(Me, "Select a scheduled project from Search Projects first.", "Reschedule Project", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            Return
+        End If
+
+        ReplaceSearchText(matchedProject.ProjectName)
+        OpenStoredProject(matchedProject.SavedProjectId)
     End Sub
 
     Private Sub OpenSelectedLiveProjectTemplate(sender As Object, e As EventArgs)
@@ -491,6 +541,21 @@ Public Class SMAPlannerForm
             Return
         End If
 
+        OpenStoredProject(item.ProjectId)
+    End Sub
+
+    Private Sub OpenStoredProject(projectId As Integer)
+        If projectId <= 0 Then
+            MessageBox.Show(Me, "This scheduled project does not have a saved identifier yet.", "Reschedule Project", MessageBoxButtons.OK, MessageBoxIcon.Information)
+            Return
+        End If
+
+        Dim item = _projects.FirstOrDefault(Function(project) project.ProjectId = projectId)
+        If item Is Nothing Then
+            MessageBox.Show(Me, "This scheduled project could not be found.", "Reschedule Project", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+            Return
+        End If
+
         Dim snapshot As ProjectSnapshot = Nothing
 
         If _sqlRepository IsNot Nothing AndAlso item.ProjectId > 0 Then
@@ -525,6 +590,54 @@ Public Class SMAPlannerForm
         End If
 
         _status.Text = message
+    End Sub
+
+    Private Shared Function IsInDesignerHost() As Boolean
+        Return LicenseManager.UsageMode = LicenseUsageMode.Designtime
+    End Function
+
+    Private Sub SeedPlannerDesignerData()
+        _projects.Clear()
+        _projects.Add(New ProjectLibraryItem With {
+            .ProjectId = 1201,
+            .ProjectName = "SMA BRE Project",
+            .VersionNumber = "1.0",
+            .ProjectSize = "Small",
+            .ProjectType = "New",
+            .TaskCount = 15,
+            .ResourceHours = 42D,
+            .StartDate = New Date(2026, 6, 24),
+            .FinishDate = New Date(2026, 7, 2)
+        })
+        _projects.Add(New ProjectLibraryItem With {
+            .ProjectId = 1202,
+            .ProjectName = "SMA Within Project",
+            .VersionNumber = "1.1",
+            .ProjectSize = "Medium",
+            .ProjectType = "Update",
+            .TaskCount = 9,
+            .ResourceHours = 28D,
+            .StartDate = New Date(2026, 6, 27),
+            .FinishDate = New Date(2026, 7, 4)
+        })
+
+        _liveProjects.Clear()
+        _liveProjects.Add(New LiveProjectItem With {.ProjectCode = "TPL-BRE", .ProjectName = "SMA - BRE Project", .TemplateName = "SMA - BRE Project", .ProjectSize = "Small", .ProjectType = "New", .ReportType = "New"})
+        _liveProjects.Add(New LiveProjectItem With {.ProjectCode = "TPL-ROL", .ProjectName = "SMA - ROL Project", .TemplateName = "SMA - ROL Project", .ProjectSize = "Medium", .ProjectType = "Update", .ReportType = "Update"})
+        _liveProjects.Add(New LiveProjectItem With {.ProjectCode = "TPL-WITHIN", .ProjectName = "SMA - Within Project", .TemplateName = "SMA - Within Project", .ProjectSize = "Small", .ProjectType = "Update", .ReportType = "Update"})
+
+        _grid.DataSource = _projects
+        _liveProjectSelector.DataSource = Nothing
+        _liveProjectSelector.DisplayMember = NameOf(LiveProjectItem.DisplayText)
+        _liveProjectSelector.DataSource = _liveProjects
+        If _liveProjects.Count > 0 Then
+            _liveProjectSelector.SelectedIndex = 0
+        End If
+
+        _liveProjectSearchBox.Text = "SMA BRE Project"
+        _status.Text = "Designer preview"
+        UpdatePlanningSummary()
+        UpdateLiveProjectSizeLabel()
     End Sub
 
 
