@@ -213,14 +213,6 @@ Public Class SMASchedulerForm
             _remainingHoursLabel.Parent.Controls.Remove(_remainingHoursLabel)
         End If
 
-        If _summaryProgress IsNot Nothing Then
-            _summaryProgress.Visible = False
-        End If
-        If _summaryResources IsNot Nothing AndAlso _summaryProgress IsNot Nothing Then
-            _summaryResources.Location = New Point(_summaryProgress.Left, _summaryResources.Top)
-            _summaryResources.Size = New Size(224, _summaryResources.Height)
-        End If
-
         EnsureSchedulerHeaderActions()
         LayoutSchedulerHeaderActions()
         UpdateProjectMetadataDisplay()
@@ -381,10 +373,6 @@ Public Class SMASchedulerForm
 
         _summaryTitle.BackColor = theme.TileOne
         _summaryDates.BackColor = theme.TileTwo
-        If _summaryProgress IsNot Nothing Then
-            _summaryProgress.BackColor = theme.TileThree
-            _summaryProgress.Visible = False
-        End If
         _summaryResources.BackColor = theme.TileFour
         For Each label In {_summaryTitle, _summaryDates, _summaryResources}
             label.ForeColor = theme.Text
@@ -1193,7 +1181,8 @@ Public Class SMASchedulerForm
                         Dim totalHours = TaskTotalHoursOnDate(task, workDate)
                         cell.Value = totalHours
                         cell.ReadOnly = True
-                        StyleUsageSummaryCell(cell, totalHours)
+                        Dim taskDailyCapacity = Math.Max(1, ResourceNamesFromAssignment(task.AssignedTo).Count) * 8D
+                        StyleUsageSummaryCell(cell, totalHours, taskDailyCapacity)
                     End If
                 Next
 
@@ -1278,7 +1267,6 @@ Public Class SMASchedulerForm
         _grid.Columns.Add(New DataGridViewTextBoxColumn With {.DataPropertyName = NameOf(ScheduleTask.DurationDays), .HeaderText = "Duration (Days)", .Width = 104, .ValueType = GetType(Decimal), .DefaultCellStyle = New DataGridViewCellStyle With {.Format = "0.###"}})
         _grid.Columns.Add(New CalendarColumn With {.DataPropertyName = NameOf(ScheduleTask.StartDate), .HeaderText = "Start", .Width = 104})
         _grid.Columns.Add(New CalendarColumn With {.DataPropertyName = NameOf(ScheduleTask.FinishDate), .HeaderText = "Finish", .Width = 104})
-        _grid.Columns.Add(New DataGridViewTextBoxColumn With {.DataPropertyName = NameOf(ScheduleTask.PercentComplete), .HeaderText = "%", .Width = 52})
         Dim predecessorColumn As New DataGridViewComboBoxColumn With {
             .DataPropertyName = NameOf(ScheduleTask.PredecessorLink),
             .HeaderText = "Predecessors",
@@ -2448,8 +2436,9 @@ Public Class SMASchedulerForm
         cell.ToolTipText = "Task hours on " & workDate.ToString("dd-MMM-yyyy")
     End Sub
 
-    Private Sub StyleUsageSummaryCell(cell As DataGridViewCell, hours As Decimal)
-        If hours > 8D Then
+    Private Sub StyleUsageSummaryCell(cell As DataGridViewCell, hours As Decimal, Optional maximumHours As Decimal = 8D)
+        maximumHours = Math.Max(0D, maximumHours)
+        If hours > maximumHours Then
             cell.Style.BackColor = Color.FromArgb(255, 210, 210)
             cell.Style.ForeColor = Color.Firebrick
             cell.Style.Font = New Font("Segoe UI", 9.0F, FontStyle.Regular)
@@ -2462,6 +2451,7 @@ Public Class SMASchedulerForm
             cell.Style.ForeColor = Color.FromArgb(75, 85, 99)
             cell.Style.Font = New Font("Segoe UI", 9.0F, FontStyle.Regular)
         End If
+        cell.ToolTipText = "Daily task capacity: " & maximumHours.ToString("0.##", CultureInfo.InvariantCulture) & " hrs"
     End Sub
 
     Private Sub StylePendingHoursCell(cell As DataGridViewCell, pendingHours As Decimal)
@@ -2947,20 +2937,19 @@ Public Class SMASchedulerForm
             Return 0D
         End If
 
-        Dim dayIndex = workingDates.FindIndex(Function(value) value = workDate.Date)
-        If dayIndex < 0 Then
-            Return 0D
-        End If
+        Dim remaining = Math.Max(0D, assigned(resourceName))
+        For Each allocationDate In workingDates
+            Dim hours = Math.Min(8D, remaining)
+            If allocationDate = workDate.Date Then
+                Return Math.Max(0D, Math.Round(hours, 2, MidpointRounding.AwayFromZero))
+            End If
+            remaining -= hours
+            If remaining <= 0D Then
+                Exit For
+            End If
+        Next
 
-        Dim totalHours = Math.Max(0D, assigned(resourceName))
-        Dim dailyShare = Math.Round(totalHours / workingDates.Count, 2, MidpointRounding.AwayFromZero)
-        Dim allocatedBefore = dailyShare * dayIndex
-        Dim remainingForDate = totalHours - allocatedBefore
-        If dayIndex = workingDates.Count - 1 Then
-            Return Math.Max(0D, Math.Round(remainingForDate, 2, MidpointRounding.AwayFromZero))
-        End If
-
-        Return Math.Max(0D, dailyShare)
+        Return 0D
     End Function
 
     Private Function TaskTotalHoursOnDate(task As ScheduleTask, workDate As Date) As Decimal
@@ -3183,24 +3172,75 @@ Public Class SMASchedulerForm
 
     Private Function BuildDefaultDailyAllocations(task As ScheduleTask, totals As Dictionary(Of String, Decimal)) As String
         Dim daily = New Dictionary(Of String, Decimal)(StringComparer.OrdinalIgnoreCase)
-        Dim workingDates = WorkingDatesForTask(task.StartDate.Date, task.FinishDate.Date)
-        If workingDates.Count = 0 Then
+        If task Is Nothing OrElse totals Is Nothing OrElse totals.Count = 0 Then
             Return ""
         End If
 
-        For Each item In totals
-            Dim remaining = Math.Max(0D, item.Value)
-            Dim share = Math.Round(remaining / workingDates.Count, 2, MidpointRounding.AwayFromZero)
-            For index = 0 To workingDates.Count - 1
-                Dim workDate = workingDates(index)
-                Dim hours = If(index = workingDates.Count - 1, remaining, share)
-                hours = Math.Max(0D, Math.Round(hours, 2, MidpointRounding.AwayFromZero))
-                If hours > 0D Then
-                    daily(DailyAllocationKey(item.Key, workDate)) = hours
-                End If
-                remaining -= hours
-            Next
+        Dim resourceOrder = ResourceNamesFromAssignment(task.AssignedTo).
+            Where(Function(name) totals.ContainsKey(name)).
+            ToList()
+        For Each resourceName In totals.Keys
+            If Not resourceOrder.Contains(resourceName, StringComparer.OrdinalIgnoreCase) Then
+                resourceOrder.Add(resourceName)
+            End If
         Next
+
+        Dim remainingByResource = resourceOrder.ToDictionary(
+            Function(name) name,
+            Function(name) Math.Max(0D, totals(name)),
+            StringComparer.OrdinalIgnoreCase)
+        If remainingByResource.Values.All(Function(hours) hours <= 0D) Then
+            Return ""
+        End If
+
+        Dim startDate = NextWorkingDate(task.StartDate.Date)
+        Dim totalHours = remainingByResource.Values.Sum()
+        Dim dailyTeamCapacity = Math.Max(8D, resourceOrder.Count * 8D)
+        Dim expectedWorkingDays = Math.Max(1, CInt(Math.Ceiling(totalHours / dailyTeamCapacity)))
+        Dim availabilityHorizon = Math.Max(60, (expectedWorkingDays * 4) + 30)
+        RefreshResourceAvailabilityCache(startDate.AddDays(-5), startDate.AddDays(availabilityHorizon))
+
+        Dim currentDate = startDate
+        Dim lastAllocatedDate As Date? = Nothing
+        Dim guard = 0
+        While remainingByResource.Values.Any(Function(hours) hours > 0D) AndAlso guard < 730
+            If Not IsBlockedScheduleDate(currentDate) Then
+                For Each resourceName In resourceOrder
+                    Dim remaining = remainingByResource(resourceName)
+                    If remaining <= 0D Then
+                        Continue For
+                    End If
+
+                    Dim available = Math.Min(8D, AvailableHoursForResource(resourceName, currentDate, task.TaskId))
+                    Dim hours = Math.Min(remaining, available)
+                    hours = Math.Max(0D, Math.Round(hours, 2, MidpointRounding.AwayFromZero))
+                    If hours > 0D Then
+                        daily(DailyAllocationKey(resourceName, currentDate)) = hours
+                        remainingByResource(resourceName) = remaining - hours
+                        lastAllocatedDate = currentDate
+                    End If
+                Next
+            End If
+
+            currentDate = currentDate.AddDays(1)
+            guard += 1
+        End While
+
+        If lastAllocatedDate.HasValue Then
+            Dim previousSuspendState = _suspendTaskEvents
+            _suspendTaskEvents = True
+            Try
+                task.StartDate = startDate
+                task.FinishDate = lastAllocatedDate.Value
+            Finally
+                _suspendTaskEvents = previousSuspendState
+            End Try
+        End If
+
+        If remainingByResource.Values.Any(Function(hours) hours > 0D) Then
+            SetStatus("Some task hours could not be allocated because no SQL capacity was available.")
+        End If
+
         Return BuildDailyAllocationsString(daily)
     End Function
 
@@ -4429,7 +4469,6 @@ Public Class GanttPanel
               todayPen As New Pen(Color.FromArgb(220, 53, 69), 2),
               barBrush As New SolidBrush(Color.FromArgb(43, 120, 228)),
               milestoneBrush As New SolidBrush(Color.FromArgb(255, 152, 0)),
-              progressBrush As New SolidBrush(Color.FromArgb(32, 156, 110)),
               dependencyPen As New Pen(Color.FromArgb(88, 101, 125), 1.4F)
 
             e.Graphics.FillRectangle(headerBrush, visibleLeft, visibleTop, ClientSize.Width, top - 8)
@@ -4488,15 +4527,9 @@ Public Class GanttPanel
                 If task.TaskName.StartsWith("Milestone: ") Then
                     DrawMilestone(e.Graphics, milestoneBrush, New Point(bar.Left + 8, bar.Top + 8))
                 Else
-                    Dim progressWidth = CInt(width * (task.PercentComplete / 100.0R))
                     e.Graphics.FillRoundedRectangle(barBrush, bar, 4)
                     DrawMovingBarHighlight(e.Graphics, bar)
-                    If progressWidth > 0 Then
-                        e.Graphics.FillRoundedRectangle(progressBrush, New Rectangle(bar.X, bar.Y, progressWidth, bar.Height), 4)
-                    End If
                 End If
-
-                TextRenderer.DrawText(e.Graphics, task.PercentComplete & "%", Font, New Rectangle(bar.Right + 6, y + 4, 46, 24), Color.DimGray)
             Next
 
             Dim parser As New ScheduleEngine()

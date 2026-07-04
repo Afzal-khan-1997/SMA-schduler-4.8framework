@@ -29,11 +29,6 @@ Partial Class SMASchedulerForm
         Me.btnLink = New System.Windows.Forms.ToolStripButton()
         Me.btnUnlink = New System.Windows.Forms.ToolStripButton()
         Me.btnMilestone = New System.Windows.Forms.ToolStripButton()
-        Me.sepTheme = New System.Windows.Forms.ToolStripSeparator()
-        Me.btnChangeTheme = New System.Windows.Forms.ToolStripButton()
-        Me.btnNew = New System.Windows.Forms.ToolStripButton()
-        Me.btnTaskUsage = New System.Windows.Forms.ToolStripButton()
-        Me.btnResourceUsage = New System.Windows.Forms.ToolStripButton()
         Me.headerPanel = New System.Windows.Forms.Panel()
         Me.appTitle = New System.Windows.Forms.Label()
         Me.projectLabel = New System.Windows.Forms.Label()
@@ -47,7 +42,6 @@ Partial Class SMASchedulerForm
         Me._includeSaturdays = New System.Windows.Forms.CheckBox()
         Me._summaryTitle = New System.Windows.Forms.Label()
         Me._summaryDates = New System.Windows.Forms.Label()
-        Me._summaryProgress = New System.Windows.Forms.Label()
         Me._summaryResources = New System.Windows.Forms.Label()
         Me.taskCatalogLabel = New System.Windows.Forms.Label()
         Me._taskCatalogSelector = New System.Windows.Forms.ComboBox()
@@ -262,43 +256,6 @@ Partial Class SMASchedulerForm
         Me.btnMilestone.Size = New System.Drawing.Size(78, 24)
         Me.btnMilestone.Text = "Milestone"
         '
-        'sepTheme
-        '
-        Me.sepTheme.Name = "sepTheme"
-        Me.sepTheme.Size = New System.Drawing.Size(6, 27)
-        '
-        'btnChangeTheme
-        '
-        Me.btnChangeTheme.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text
-        Me.btnChangeTheme.ForeColor = System.Drawing.Color.White
-        Me.btnChangeTheme.Name = "btnChangeTheme"
-        Me.btnChangeTheme.Size = New System.Drawing.Size(112, 24)
-        Me.btnChangeTheme.Text = "Change Theme"
-        '
-        'btnNew
-        '
-        Me.btnNew.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text
-        Me.btnNew.ForeColor = System.Drawing.Color.White
-        Me.btnNew.Name = "btnNew"
-        Me.btnNew.Size = New System.Drawing.Size(43, 24)
-        Me.btnNew.Text = "New"
-        '
-        'btnTaskUsage
-        '
-        Me.btnTaskUsage.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text
-        Me.btnTaskUsage.ForeColor = System.Drawing.Color.White
-        Me.btnTaskUsage.Name = "btnTaskUsage"
-        Me.btnTaskUsage.Size = New System.Drawing.Size(84, 24)
-        Me.btnTaskUsage.Text = "Task Usage"
-        '
-        'btnResourceUsage
-        '
-        Me.btnResourceUsage.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text
-        Me.btnResourceUsage.ForeColor = System.Drawing.Color.White
-        Me.btnResourceUsage.Name = "btnResourceUsage"
-        Me.btnResourceUsage.Size = New System.Drawing.Size(112, 24)
-        Me.btnResourceUsage.Text = "Resource Usage"
-        '
         'headerPanel
         '
         Me.headerPanel.BackColor = System.Drawing.Color.FromArgb(CType(CType(229, Byte), Integer), CType(CType(241, Byte), Integer), CType(CType(255, Byte), Integer))
@@ -314,7 +271,6 @@ Partial Class SMASchedulerForm
         Me.headerPanel.Controls.Add(Me._includeSaturdays)
         Me.headerPanel.Controls.Add(Me._summaryTitle)
         Me.headerPanel.Controls.Add(Me._summaryDates)
-        Me.headerPanel.Controls.Add(Me._summaryProgress)
         Me.headerPanel.Controls.Add(Me._summaryResources)
         Me.headerPanel.Dock = System.Windows.Forms.DockStyle.Top
         Me.headerPanel.Location = New System.Drawing.Point(0, 45)
@@ -449,19 +405,6 @@ Partial Class SMASchedulerForm
         Me._summaryDates.TabIndex = 6
         Me._summaryDates.Text = "No dates"
         Me._summaryDates.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
-        '
-        '_summaryProgress
-        '
-        Me._summaryProgress.BackColor = System.Drawing.Color.FromArgb(CType(CType(225, Byte), Integer), CType(CType(239, Byte), Integer), CType(CType(255, Byte), Integer))
-        Me._summaryProgress.Font = New System.Drawing.Font("Segoe UI Semibold", 10.0!)
-        Me._summaryProgress.ForeColor = System.Drawing.Color.FromArgb(CType(CType(37, Byte), Integer), CType(CType(47, Byte), Integer), CType(CType(63, Byte), Integer))
-        Me._summaryProgress.Location = New System.Drawing.Point(442, 170)
-        Me._summaryProgress.Name = "_summaryProgress"
-        Me._summaryProgress.Size = New System.Drawing.Size(171, 56)
-        Me._summaryProgress.TabIndex = 7
-        Me._summaryProgress.Text = "0% complete"
-        Me._summaryProgress.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
-        Me._summaryProgress.Visible = False
         '
         '_summaryResources
         '
@@ -1275,11 +1218,8 @@ Partial Class SMASchedulerForm
     End Sub
 
     Private commandBar As ToolStrip
-    Private btnNew As ToolStripButton
     Private btnSave As ToolStripButton
     Private btnRefreshCapacity As ToolStripButton
-    Private btnTaskUsage As ToolStripButton
-    Private btnResourceUsage As ToolStripButton
     Private sepFile As ToolStripSeparator
     Private btnAddTask As ToolStripButton
     Private btnDelete As ToolStripButton
@@ -1289,8 +1229,6 @@ Partial Class SMASchedulerForm
     Private btnLink As ToolStripButton
     Private btnUnlink As ToolStripButton
     Private btnMilestone As ToolStripButton
-    Private sepTheme As ToolStripSeparator
-    Private btnChangeTheme As ToolStripButton
     Private headerPanel As Panel
     Private appTitle As Label
     Private projectLabel As Label
@@ -1355,7 +1293,6 @@ Partial Class SMASchedulerForm
     Private _includeSaturdays As CheckBox
     Private _summaryTitle As Label
     Private _summaryDates As Label
-    Private _summaryProgress As Label
     Private _summaryResources As Label
     Private _resourcesNeeded As BlankNumericUpDown
     Private _remainingHoursLabel As Label
