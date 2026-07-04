@@ -16,17 +16,7 @@ Public Class SMASchedulerForm
     Private ReadOnly _taskCatalog As New BindingList(Of TaskCatalogItem)
     Private ReadOnly _employees As New BindingList(Of String)
 
-    Private _workspaceTabs As TabControl
-    Private _capacityGrid As DataGridView
-    Private _taskUsageGrid As DataGridView
-    Private _resourceUsageGrid As DataGridView
-    Private _resourceUtilizationGrid As DataGridView
     Private _plannerLegendGrid As DataGridView
-    Private _resourceUtilizationRefreshButton As Button
-    Private _resourceUtilizationColorSelector As ComboBox
-    Private _resourceUtilizationApplyButton As Button
-    Private _resourceUtilizationClearButton As Button
-    Private _resourceUtilizationMailButton As Button
     Private _scheduleProjectButton As Button
     Private _projectDetailsCaptionLabel As Label
     Private _projectDetailsValueLabel As Label
@@ -591,113 +581,37 @@ Public Class SMASchedulerForm
     End Sub
 
     Private Sub ConfigureWorkspaceTabs()
-        If contentSplit Is Nothing OrElse mainSplit Is Nothing Then
+        If contentSplit Is Nothing OrElse _workspaceTabs Is Nothing OrElse mainSplit Is Nothing Then
             Return
         End If
 
         contentSplit.Panel2Collapsed = True
+        contentSplit.Panel1.Padding = New Padding(0)
         _plannerPieCharts.Clear()
         _plannerLegendGrids.Clear()
         _plannerTaskCountLabels.Clear()
         _plannerDurationLabels.Clear()
 
-        If mainSplit.Parent IsNot Nothing Then
-            mainSplit.Parent.Controls.Remove(mainSplit)
-        End If
-
-        _workspaceTabs = New TabControl With {
-            .Dock = DockStyle.Fill,
-            .Name = "_workspaceTabs",
-            .Padding = New Point(18, 6)
-        }
-
-        Dim taskAllocationTab = BuildWorkspaceTabPage("Task Allocation")
-        Dim taskViewTab = BuildWorkspaceTabPage("Task Usage View")
-        Dim resourceUsageTab = BuildWorkspaceTabPage("Resource Usage View")
-        Dim capacityPlanningTab = BuildWorkspaceTabPage("Capacity Planning")
-        Dim resourceUtilizationTab = BuildWorkspaceTabPage("Resource Utilization")
-        Dim taskAllocationHost As New Panel With {
-            .Dock = DockStyle.Fill,
-            .BackColor = Color.White
-        }
-        Dim taskAllocationCanvas As New Panel With {
-            .Dock = DockStyle.Fill,
-            .Padding = New Padding(10, 8, 10, 26),
-            .BackColor = Color.White
-        }
-        Dim taskAllocationSurface As New Panel With {
-            .Dock = DockStyle.Top,
-            .BackColor = Color.White,
-            .BorderStyle = BorderStyle.FixedSingle
-        }
-        Dim taskGridHost = BuildWorkspaceSurfaceHost()
-        Dim ganttHost = BuildWorkspaceSurfaceHost()
-        Dim allocationPreviewChart As PlannerPieChartPanel = Nothing
-        Dim allocationTaskCountLabel As Label = Nothing
-        Dim allocationDurationLabel As Label = Nothing
-        Dim allocationPreview = BuildPlannerPreviewHost(PlannerPreviewMode.ResourcesUsed, allocationPreviewChart, allocationTaskCountLabel, allocationDurationLabel)
-        Dim ganttCanvas As New Panel With {
-            .Dock = DockStyle.Fill,
-            .BackColor = Color.White
-        }
-
-        taskAllocationTab.Padding = New Padding(0, 0, 0, 10)
-        contentSplit.Panel1.Padding = New Padding(0, 0, 0, 10)
-
-        mainSplit.Panel1.Controls.Clear()
-        mainSplit.Panel2.Controls.Clear()
-        mainSplit.Orientation = Orientation.Vertical
-        taskGridHost.Controls.Add(_grid)
-        ganttCanvas.Controls.Add(_gantt)
-        ganttHost.Controls.Add(ganttCanvas)
-        ganttHost.Controls.Add(allocationPreview)
-        mainSplit.Panel1.Controls.Add(taskGridHost)
-        mainSplit.Panel2.Controls.Add(ganttHost)
-        mainSplit.Panel1MinSize = 620
-        mainSplit.Panel2MinSize = 320
-        mainSplit.Dock = DockStyle.Fill
         _grid.ScrollBars = ScrollBars.Both
         _grid.BorderStyle = BorderStyle.FixedSingle
-        AddHandler mainSplit.SizeChanged, Sub()
-                                              ApplyResponsiveSplitter(mainSplit, 720, 360, 0.62R)
-                                          End Sub
-        AddHandler taskAllocationCanvas.SizeChanged, Sub()
-                                                         LayoutTaskAllocationSurface(taskAllocationCanvas, taskAllocationSurface)
-                                                     End Sub
-        taskAllocationSurface.Controls.Add(mainSplit)
-        taskAllocationCanvas.Controls.Add(taskAllocationSurface)
-        taskAllocationHost.Controls.Add(taskAllocationCanvas)
-        taskAllocationTab.Controls.Add(taskAllocationHost)
-
-        _taskUsageGrid = BuildTaskViewGrid()
-        _resourceUsageGrid = BuildResourceUsageGrid()
-        _capacityGrid = BuildCapacityPlanningSummaryGrid()
-        _resourceUtilizationGrid = BuildCapacityPlanningSummaryGrid()
+        ConfigureStaticWorkspaceGrid(_taskUsageGrid, DataGridViewSelectionMode.CellSelect, False, False)
+        ConfigureStaticWorkspaceGrid(_resourceUsageGrid, DataGridViewSelectionMode.CellSelect, False, False)
+        ConfigureStaticWorkspaceGrid(_capacityGrid, DataGridViewSelectionMode.FullRowSelect, True, False)
+        ConfigureStaticWorkspaceGrid(_resourceUtilizationGrid, DataGridViewSelectionMode.CellSelect, False, True)
         _resourceUtilizationGrid.ReadOnly = False
-        _resourceUtilizationGrid.SelectionMode = DataGridViewSelectionMode.CellSelect
-        _resourceUtilizationGrid.MultiSelect = True
-        Dim taskUsagePreviewChart As PlannerPieChartPanel = Nothing
-        Dim taskUsageTaskCountLabel As Label = Nothing
-        Dim taskUsageDurationLabel As Label = Nothing
-        Dim resourceUsagePreviewChart As PlannerPieChartPanel = Nothing
-        Dim resourceUsageTaskCountLabel As Label = Nothing
-        Dim resourceUsageDurationLabel As Label = Nothing
 
-        taskViewTab.Controls.Add(BuildWorkspacePreviewSplit(_taskUsageGrid, BuildPlannerPreviewHost(PlannerPreviewMode.TaskDuration, taskUsagePreviewChart, taskUsageTaskCountLabel, taskUsageDurationLabel)))
-        resourceUsageTab.Controls.Add(BuildWorkspacePreviewSplit(_resourceUsageGrid, BuildPlannerPreviewHost(PlannerPreviewMode.ResourceContribution, resourceUsagePreviewChart, resourceUsageTaskCountLabel, resourceUsageDurationLabel)))
-        capacityPlanningTab.Controls.Add(_capacityGrid)
-        resourceUtilizationTab.Controls.Add(BuildResourceUtilizationHost())
-
-        _workspaceTabs.TabPages.Add(taskAllocationTab)
-        _workspaceTabs.TabPages.Add(taskViewTab)
-        _workspaceTabs.TabPages.Add(resourceUsageTab)
-        _workspaceTabs.TabPages.Add(capacityPlanningTab)
-        _workspaceTabs.TabPages.Add(resourceUtilizationTab)
-
-        contentSplit.Panel1.Controls.Clear()
-        contentSplit.Panel1.Controls.Add(_workspaceTabs)
-
+        ConfigureDesignerPreview(PlannerPreviewMode.ResourcesUsed, allocationPreviewChart, allocationLegendGrid, allocationPrimaryLabel, allocationSecondaryLabel)
+        ConfigureDesignerPreview(PlannerPreviewMode.TaskDuration, taskUsagePreviewChart, taskUsageLegendGrid, taskUsagePrimaryLabel, taskUsageSecondaryLabel)
+        ConfigureDesignerPreview(PlannerPreviewMode.ResourceContribution, resourceUsagePreviewChart, resourceUsageLegendGrid, resourceUsagePrimaryLabel, resourceUsageSecondaryLabel)
         _plannerLegendGrid = Nothing
+
+        If _resourceUtilizationColorSelector.Items.Count > 0 AndAlso _resourceUtilizationColorSelector.SelectedIndex < 0 Then
+            _resourceUtilizationColorSelector.SelectedIndex = 0
+        End If
+        AddHandler _resourceUtilizationRefreshButton.Click, AddressOf RefreshResourceUtilizationTab
+        AddHandler _resourceUtilizationApplyButton.Click, AddressOf ApplyResourceUtilizationHighlight
+        AddHandler _resourceUtilizationClearButton.Click, AddressOf ClearResourceUtilizationHighlight
+        AddHandler _resourceUtilizationMailButton.Click, AddressOf SendResourceUtilizationSnip
 
         AddHandler _taskUsageGrid.CellParsing, AddressOf CalendarGridCellParsing
         AddHandler _taskUsageGrid.CellEndEdit, AddressOf TaskViewGridCellEndEdit
@@ -711,9 +625,56 @@ Public Class SMASchedulerForm
         AddHandler _resourceUtilizationGrid.CellEndEdit, AddressOf ResourceUtilizationGridCellEndEdit
         AddHandler _resourceUtilizationGrid.DataError, AddressOf CalendarGridDataError
 
+        AddHandler mainSplit.SizeChanged, Sub() ApplyResponsiveSplitter(mainSplit, 620, 380, 0.62R)
+        AddHandler taskUsageSplit.SizeChanged, Sub() ApplyResponsiveSplitter(taskUsageSplit, 700, 360, 0.68R)
+        AddHandler resourceUsageSplit.SizeChanged, Sub() ApplyResponsiveSplitter(resourceUsageSplit, 700, 360, 0.68R)
+
         RefreshWorkspaceTabs()
-        LayoutTaskAllocationSurface(taskAllocationCanvas, taskAllocationSurface)
-        ApplyResponsiveSplitter(mainSplit, 720, 360, 0.62R)
+        ApplyResponsiveSplitter(mainSplit, 620, 380, 0.62R)
+        ApplyResponsiveSplitter(taskUsageSplit, 700, 360, 0.68R)
+        ApplyResponsiveSplitter(resourceUsageSplit, 700, 360, 0.68R)
+    End Sub
+
+    Private Sub ConfigureStaticWorkspaceGrid(grid As DataGridView, selectionMode As DataGridViewSelectionMode, readOnlyValue As Boolean, multiSelectValue As Boolean)
+        If grid Is Nothing Then
+            Return
+        End If
+
+        grid.AllowUserToAddRows = False
+        grid.AllowUserToDeleteRows = False
+        grid.AutoGenerateColumns = False
+        grid.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.None
+        grid.BackgroundColor = Color.White
+        grid.BorderStyle = BorderStyle.None
+        grid.ColumnHeadersHeight = 32
+        grid.Dock = DockStyle.Fill
+        grid.EnableHeadersVisualStyles = False
+        grid.GridColor = Color.FromArgb(232, 236, 242)
+        grid.MultiSelect = multiSelectValue
+        grid.ReadOnly = readOnlyValue
+        grid.RowHeadersVisible = False
+        grid.ScrollBars = ScrollBars.Both
+        grid.SelectionMode = selectionMode
+        grid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(35, 46, 66)
+        grid.ColumnHeadersDefaultCellStyle.ForeColor = Color.White
+        grid.ColumnHeadersDefaultCellStyle.Font = New Font("Segoe UI Semibold", 9.0F)
+        grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(219, 235, 255)
+        grid.DefaultCellStyle.SelectionForeColor = Color.FromArgb(24, 31, 42)
+    End Sub
+
+    Private Sub ConfigureDesignerPreview(mode As PlannerPreviewMode, chart As PlannerPieChartPanel, legend As DataGridView, primaryLabel As Label, secondaryLabel As Label)
+        If chart Is Nothing OrElse legend Is Nothing OrElse primaryLabel Is Nothing OrElse secondaryLabel Is Nothing Then
+            Return
+        End If
+
+        chart.PreviewMode = mode
+        primaryLabel.Tag = mode
+        secondaryLabel.Tag = mode
+        PlannerLegendGrid(mode, legend)
+        _plannerPieCharts.Add(chart)
+        _plannerLegendGrids.Add(legend)
+        _plannerTaskCountLabels.Add(primaryLabel)
+        _plannerDurationLabels.Add(secondaryLabel)
     End Sub
 
     Private Sub LayoutTaskAllocationSurface(canvas As Panel, surface As Panel)
@@ -1268,23 +1229,27 @@ Public Class SMASchedulerForm
         End Try
     End Sub
 
-    Private Function PlannerLegendGrid(mode As PlannerPreviewMode) As DataGridView
-        Dim legend As New DataGridView With {
-            .AllowUserToAddRows = False,
-            .AllowUserToDeleteRows = False,
-            .AutoGenerateColumns = False,
-            .BackgroundColor = Color.White,
-            .BorderStyle = BorderStyle.None,
-            .ColumnHeadersHeight = 30,
-            .Dock = DockStyle.Fill,
-            .EnableHeadersVisualStyles = False,
-            .GridColor = Color.FromArgb(232, 236, 242),
-            .ReadOnly = True,
-            .RowHeadersVisible = False,
-            .RowTemplate = New DataGridViewRow With {.Height = 24},
-            .AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells,
-            .SelectionMode = DataGridViewSelectionMode.FullRowSelect
-        }
+    Private Function PlannerLegendGrid(mode As PlannerPreviewMode, Optional existingLegend As DataGridView = Nothing) As DataGridView
+        Dim legend = existingLegend
+        If legend Is Nothing Then
+            legend = New DataGridView()
+        End If
+
+        legend.AllowUserToAddRows = False
+        legend.AllowUserToDeleteRows = False
+        legend.AutoGenerateColumns = False
+        legend.BackgroundColor = Color.White
+        legend.BorderStyle = BorderStyle.None
+        legend.ColumnHeadersHeight = 30
+        legend.Dock = DockStyle.Fill
+        legend.EnableHeadersVisualStyles = False
+        legend.GridColor = Color.FromArgb(232, 236, 242)
+        legend.ReadOnly = True
+        legend.RowHeadersVisible = False
+        legend.RowTemplate.Height = 24
+        legend.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells
+        legend.SelectionMode = DataGridViewSelectionMode.FullRowSelect
+        legend.Columns.Clear()
         legend.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(35, 46, 66)
         legend.ColumnHeadersDefaultCellStyle.ForeColor = Color.White
         legend.ColumnHeadersDefaultCellStyle.Font = New Font("Segoe UI Semibold", 9.0F)
@@ -1300,6 +1265,8 @@ Public Class SMASchedulerForm
             .DefaultCellStyle = New DataGridViewCellStyle With {.WrapMode = DataGridViewTriState.True}
         })
         legend.Columns.Add(New DataGridViewTextBoxColumn With {.DataPropertyName = NameOf(PlannerPreviewRow.ShareText), .HeaderText = "%", .Width = 62, .Resizable = DataGridViewTriState.False})
+        RemoveHandler legend.CellFormatting, AddressOf PlannerLegendCellFormatting
+        RemoveHandler legend.CellToolTipTextNeeded, AddressOf PlannerLegendToolTipTextNeeded
         AddHandler legend.CellFormatting, AddressOf PlannerLegendCellFormatting
         AddHandler legend.CellToolTipTextNeeded, AddressOf PlannerLegendToolTipTextNeeded
         Return legend
