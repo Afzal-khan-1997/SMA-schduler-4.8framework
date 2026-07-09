@@ -155,7 +155,7 @@ Partial Class SMAPlannerForm
         Me.selectorLabel.ForeColor = System.Drawing.Color.FromArgb(CType(CType(75, Byte), Integer), CType(CType(85, Byte), Integer), CType(CType(99, Byte), Integer))
         Me.selectorLabel.Location = New System.Drawing.Point(336, 76)
         Me.selectorLabel.Name = "selectorLabel"
-        Me.selectorLabel.Size = New System.Drawing.Size(106, 20)
+        Me.selectorLabel.Size = New System.Drawing.Size(115, 20)
         Me.selectorLabel.TabIndex = 6
         Me.selectorLabel.Text = "Select Template"
         '
@@ -211,7 +211,7 @@ Partial Class SMAPlannerForm
         Me.projectTypeCaptionLabel.ForeColor = System.Drawing.Color.FromArgb(CType(CType(75, Byte), Integer), CType(CType(85, Byte), Integer), CType(CType(99, Byte), Integer))
         Me.projectTypeCaptionLabel.Location = New System.Drawing.Point(336, 146)
         Me.projectTypeCaptionLabel.Name = "projectTypeCaptionLabel"
-        Me.projectTypeCaptionLabel.Size = New System.Drawing.Size(88, 20)
+        Me.projectTypeCaptionLabel.Size = New System.Drawing.Size(92, 20)
         Me.projectTypeCaptionLabel.TabIndex = 11
         Me.projectTypeCaptionLabel.Text = "Report Type:"
         '
@@ -257,7 +257,7 @@ Partial Class SMAPlannerForm
         Me._grid.RowHeadersVisible = False
         Me._grid.RowHeadersWidth = 51
         Me._grid.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect
-        Me._grid.Size = New System.Drawing.Size(1132, 286)
+        Me._grid.Size = New System.Drawing.Size(1132, 316)
         Me._grid.TabIndex = 1
         '
         'listTitle
@@ -277,7 +277,7 @@ Partial Class SMAPlannerForm
         Me.planningSummaryPanel.Controls.Add(Me.summaryPeriodLabel)
         Me.planningSummaryPanel.Controls.Add(Me.summaryTitleLabel)
         Me.planningSummaryPanel.Dock = System.Windows.Forms.DockStyle.Bottom
-        Me.planningSummaryPanel.Location = New System.Drawing.Point(24, 342)
+        Me.planningSummaryPanel.Location = New System.Drawing.Point(24, 372)
         Me.planningSummaryPanel.Name = "planningSummaryPanel"
         Me.planningSummaryPanel.Padding = New System.Windows.Forms.Padding(0, 12, 0, 8)
         Me.planningSummaryPanel.Size = New System.Drawing.Size(1132, 214)
@@ -430,7 +430,7 @@ Partial Class SMAPlannerForm
         '
         Me._status.Dock = System.Windows.Forms.DockStyle.Bottom
         Me._status.ForeColor = System.Drawing.Color.DimGray
-        Me._status.Location = New System.Drawing.Point(24, 556)
+        Me._status.Location = New System.Drawing.Point(24, 586)
         Me._status.Name = "_status"
         Me._status.Size = New System.Drawing.Size(1132, 28)
         Me._status.TabIndex = 2

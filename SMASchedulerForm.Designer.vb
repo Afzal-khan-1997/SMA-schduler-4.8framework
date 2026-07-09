@@ -56,46 +56,46 @@ Partial Class SMASchedulerForm
         Me.ganttPreviewSplit = New System.Windows.Forms.SplitContainer()
         Me._gantt = New SMAScheduler.GanttPanel()
         Me.allocationPreviewPanel = New System.Windows.Forms.Panel()
-        Me.allocationPreviewTitle = New System.Windows.Forms.Label()
-        Me.allocationPreviewBadges = New System.Windows.Forms.FlowLayoutPanel()
-        Me.allocationPrimaryLabel = New System.Windows.Forms.Label()
-        Me.allocationSecondaryLabel = New System.Windows.Forms.Label()
         Me.allocationPreviewBodySplit = New System.Windows.Forms.SplitContainer()
         Me.allocationPreviewChart = New SMAScheduler.PlannerPieChartPanel()
         Me.allocationLegendGrid = New System.Windows.Forms.DataGridView()
+        Me.allocationPreviewBadges = New System.Windows.Forms.FlowLayoutPanel()
+        Me.allocationPrimaryLabel = New System.Windows.Forms.Label()
+        Me.allocationSecondaryLabel = New System.Windows.Forms.Label()
+        Me.allocationPreviewTitle = New System.Windows.Forms.Label()
         Me.taskUsageTab = New System.Windows.Forms.TabPage()
         Me.taskUsageSplit = New System.Windows.Forms.SplitContainer()
         Me._taskUsageGrid = New System.Windows.Forms.DataGridView()
         Me.taskUsagePreviewPanel = New System.Windows.Forms.Panel()
-        Me.taskUsagePreviewTitle = New System.Windows.Forms.Label()
-        Me.taskUsagePreviewBadges = New System.Windows.Forms.FlowLayoutPanel()
-        Me.taskUsagePrimaryLabel = New System.Windows.Forms.Label()
-        Me.taskUsageSecondaryLabel = New System.Windows.Forms.Label()
         Me.taskUsagePreviewBodySplit = New System.Windows.Forms.SplitContainer()
         Me.taskUsagePreviewChart = New SMAScheduler.PlannerPieChartPanel()
         Me.taskUsageLegendGrid = New System.Windows.Forms.DataGridView()
+        Me.taskUsagePreviewBadges = New System.Windows.Forms.FlowLayoutPanel()
+        Me.taskUsagePrimaryLabel = New System.Windows.Forms.Label()
+        Me.taskUsageSecondaryLabel = New System.Windows.Forms.Label()
+        Me.taskUsagePreviewTitle = New System.Windows.Forms.Label()
         Me.resourceUsageTab = New System.Windows.Forms.TabPage()
         Me.resourceUsageSplit = New System.Windows.Forms.SplitContainer()
         Me._resourceUsageGrid = New System.Windows.Forms.DataGridView()
         Me.resourceUsagePreviewPanel = New System.Windows.Forms.Panel()
-        Me.resourceUsagePreviewTitle = New System.Windows.Forms.Label()
-        Me.resourceUsagePreviewBadges = New System.Windows.Forms.FlowLayoutPanel()
-        Me.resourceUsagePrimaryLabel = New System.Windows.Forms.Label()
-        Me.resourceUsageSecondaryLabel = New System.Windows.Forms.Label()
         Me.resourceUsagePreviewBodySplit = New System.Windows.Forms.SplitContainer()
         Me.resourceUsagePreviewChart = New SMAScheduler.PlannerPieChartPanel()
         Me.resourceUsageLegendGrid = New System.Windows.Forms.DataGridView()
+        Me.resourceUsagePreviewBadges = New System.Windows.Forms.FlowLayoutPanel()
+        Me.resourceUsagePrimaryLabel = New System.Windows.Forms.Label()
+        Me.resourceUsageSecondaryLabel = New System.Windows.Forms.Label()
+        Me.resourceUsagePreviewTitle = New System.Windows.Forms.Label()
         Me.capacityPlanningTab = New System.Windows.Forms.TabPage()
         Me._capacityGrid = New System.Windows.Forms.DataGridView()
         Me.resourceUtilizationTab = New System.Windows.Forms.TabPage()
         Me.resourceUtilizationHost = New System.Windows.Forms.Panel()
+        Me._resourceUtilizationGrid = New System.Windows.Forms.DataGridView()
         Me.resourceUtilizationToolbar = New System.Windows.Forms.FlowLayoutPanel()
         Me._resourceUtilizationRefreshButton = New System.Windows.Forms.Button()
         Me._resourceUtilizationColorSelector = New System.Windows.Forms.ComboBox()
         Me._resourceUtilizationApplyButton = New System.Windows.Forms.Button()
         Me._resourceUtilizationClearButton = New System.Windows.Forms.Button()
         Me._resourceUtilizationMailButton = New System.Windows.Forms.Button()
-        Me._resourceUtilizationGrid = New System.Windows.Forms.DataGridView()
         Me._detailsPanel = New System.Windows.Forms.Panel()
         Me.taskWorkspaceTitle = New System.Windows.Forms.Label()
         Me.statusBar = New System.Windows.Forms.StatusStrip()
@@ -120,12 +120,12 @@ Partial Class SMASchedulerForm
         Me.ganttPreviewSplit.Panel2.SuspendLayout()
         Me.ganttPreviewSplit.SuspendLayout()
         Me.allocationPreviewPanel.SuspendLayout()
-        Me.allocationPreviewBadges.SuspendLayout()
         CType(Me.allocationPreviewBodySplit, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.allocationPreviewBodySplit.Panel1.SuspendLayout()
         Me.allocationPreviewBodySplit.Panel2.SuspendLayout()
         Me.allocationPreviewBodySplit.SuspendLayout()
         CType(Me.allocationLegendGrid, System.ComponentModel.ISupportInitialize).BeginInit()
+        Me.allocationPreviewBadges.SuspendLayout()
         Me.taskUsageTab.SuspendLayout()
         CType(Me.taskUsageSplit, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.taskUsageSplit.Panel1.SuspendLayout()
@@ -133,12 +133,12 @@ Partial Class SMASchedulerForm
         Me.taskUsageSplit.SuspendLayout()
         CType(Me._taskUsageGrid, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.taskUsagePreviewPanel.SuspendLayout()
-        Me.taskUsagePreviewBadges.SuspendLayout()
         CType(Me.taskUsagePreviewBodySplit, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.taskUsagePreviewBodySplit.Panel1.SuspendLayout()
         Me.taskUsagePreviewBodySplit.Panel2.SuspendLayout()
         Me.taskUsagePreviewBodySplit.SuspendLayout()
         CType(Me.taskUsageLegendGrid, System.ComponentModel.ISupportInitialize).BeginInit()
+        Me.taskUsagePreviewBadges.SuspendLayout()
         Me.resourceUsageTab.SuspendLayout()
         CType(Me.resourceUsageSplit, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.resourceUsageSplit.Panel1.SuspendLayout()
@@ -146,18 +146,18 @@ Partial Class SMASchedulerForm
         Me.resourceUsageSplit.SuspendLayout()
         CType(Me._resourceUsageGrid, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.resourceUsagePreviewPanel.SuspendLayout()
-        Me.resourceUsagePreviewBadges.SuspendLayout()
         CType(Me.resourceUsagePreviewBodySplit, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.resourceUsagePreviewBodySplit.Panel1.SuspendLayout()
         Me.resourceUsagePreviewBodySplit.Panel2.SuspendLayout()
         Me.resourceUsagePreviewBodySplit.SuspendLayout()
         CType(Me.resourceUsageLegendGrid, System.ComponentModel.ISupportInitialize).BeginInit()
+        Me.resourceUsagePreviewBadges.SuspendLayout()
         Me.capacityPlanningTab.SuspendLayout()
         CType(Me._capacityGrid, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.resourceUtilizationTab.SuspendLayout()
         Me.resourceUtilizationHost.SuspendLayout()
-        Me.resourceUtilizationToolbar.SuspendLayout()
         CType(Me._resourceUtilizationGrid, System.ComponentModel.ISupportInitialize).BeginInit()
+        Me.resourceUtilizationToolbar.SuspendLayout()
         Me._detailsPanel.SuspendLayout()
         Me.statusBar.SuspendLayout()
         Me.SuspendLayout()
@@ -510,12 +510,13 @@ Partial Class SMASchedulerForm
         '
         Me.taskAllocationTab.BackColor = System.Drawing.Color.White
         Me.taskAllocationTab.Controls.Add(Me.mainSplit)
-        Me.taskAllocationTab.Location = New System.Drawing.Point(4, 32)
+        Me.taskAllocationTab.Location = New System.Drawing.Point(4, 35)
         Me.taskAllocationTab.Name = "taskAllocationTab"
         Me.taskAllocationTab.Padding = New System.Windows.Forms.Padding(3)
-        Me.taskAllocationTab.Size = New System.Drawing.Size(1569, 696)
+        Me.taskAllocationTab.Size = New System.Drawing.Size(1569, 693)
         Me.taskAllocationTab.TabIndex = 0
         Me.taskAllocationTab.Text = "Task Allocation"
+        '
         'mainSplit
         '
         Me.mainSplit.BackColor = System.Drawing.Color.FromArgb(CType(CType(224, Byte), Integer), CType(CType(229, Byte), Integer), CType(CType(236, Byte), Integer))
@@ -533,7 +534,7 @@ Partial Class SMASchedulerForm
         '
         Me.mainSplit.Panel2.Controls.Add(Me.ganttPreviewSplit)
         Me.mainSplit.Panel2MinSize = 380
-        Me.mainSplit.Size = New System.Drawing.Size(1563, 690)
+        Me.mainSplit.Size = New System.Drawing.Size(1563, 687)
         Me.mainSplit.SplitterDistance = 934
         Me.mainSplit.SplitterWidth = 5
         Me.mainSplit.TabIndex = 0
@@ -558,7 +559,7 @@ Partial Class SMASchedulerForm
         Me._grid.RowHeadersWidth = 51
         Me._grid.RowTemplate.Height = 30
         Me._grid.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect
-        Me._grid.Size = New System.Drawing.Size(934, 690)
+        Me._grid.Size = New System.Drawing.Size(934, 687)
         Me._grid.TabIndex = 0
         '
         'ganttPreviewSplit
@@ -578,8 +579,8 @@ Partial Class SMASchedulerForm
         '
         Me.ganttPreviewSplit.Panel2.Controls.Add(Me.allocationPreviewPanel)
         Me.ganttPreviewSplit.Panel2MinSize = 200
-        Me.ganttPreviewSplit.Size = New System.Drawing.Size(624, 690)
-        Me.ganttPreviewSplit.SplitterDistance = 420
+        Me.ganttPreviewSplit.Size = New System.Drawing.Size(624, 687)
+        Me.ganttPreviewSplit.SplitterDistance = 418
         Me.ganttPreviewSplit.SplitterWidth = 5
         Me.ganttPreviewSplit.TabIndex = 0
         '
@@ -591,7 +592,7 @@ Partial Class SMASchedulerForm
         Me._gantt.Location = New System.Drawing.Point(0, 0)
         Me._gantt.Margin = New System.Windows.Forms.Padding(3, 4, 3, 4)
         Me._gantt.Name = "_gantt"
-        Me._gantt.Size = New System.Drawing.Size(624, 420)
+        Me._gantt.Size = New System.Drawing.Size(624, 418)
         Me._gantt.TabIndex = 0
         '
         'allocationPreviewPanel
@@ -604,19 +605,51 @@ Partial Class SMASchedulerForm
         Me.allocationPreviewPanel.Location = New System.Drawing.Point(0, 0)
         Me.allocationPreviewPanel.Name = "allocationPreviewPanel"
         Me.allocationPreviewPanel.Padding = New System.Windows.Forms.Padding(8)
-        Me.allocationPreviewPanel.Size = New System.Drawing.Size(624, 265)
+        Me.allocationPreviewPanel.Size = New System.Drawing.Size(624, 264)
         Me.allocationPreviewPanel.TabIndex = 0
         '
-        'allocationPreviewTitle
+        'allocationPreviewBodySplit
         '
-        Me.allocationPreviewTitle.Dock = System.Windows.Forms.DockStyle.Top
-        Me.allocationPreviewTitle.Font = New System.Drawing.Font("Segoe UI Semibold", 11.0!)
-        Me.allocationPreviewTitle.ForeColor = System.Drawing.Color.FromArgb(CType(CType(24, Byte), Integer), CType(CType(31, Byte), Integer), CType(CType(42, Byte), Integer))
-        Me.allocationPreviewTitle.Location = New System.Drawing.Point(8, 8)
-        Me.allocationPreviewTitle.Name = "allocationPreviewTitle"
-        Me.allocationPreviewTitle.Size = New System.Drawing.Size(608, 28)
-        Me.allocationPreviewTitle.TabIndex = 0
-        Me.allocationPreviewTitle.Text = "Planner Preview - Resources Used"
+        Me.allocationPreviewBodySplit.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.allocationPreviewBodySplit.Location = New System.Drawing.Point(8, 70)
+        Me.allocationPreviewBodySplit.Name = "allocationPreviewBodySplit"
+        '
+        'allocationPreviewBodySplit.Panel1
+        '
+        Me.allocationPreviewBodySplit.Panel1.Controls.Add(Me.allocationPreviewChart)
+        '
+        'allocationPreviewBodySplit.Panel2
+        '
+        Me.allocationPreviewBodySplit.Panel2.Controls.Add(Me.allocationLegendGrid)
+        Me.allocationPreviewBodySplit.Size = New System.Drawing.Size(608, 186)
+        Me.allocationPreviewBodySplit.SplitterDistance = 260
+        Me.allocationPreviewBodySplit.TabIndex = 2
+        '
+        'allocationPreviewChart
+        '
+        Me.allocationPreviewChart.BackColor = System.Drawing.Color.White
+        Me.allocationPreviewChart.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.allocationPreviewChart.Location = New System.Drawing.Point(0, 0)
+        Me.allocationPreviewChart.Name = "allocationPreviewChart"
+        Me.allocationPreviewChart.PreviewMode = SMAScheduler.PlannerPreviewMode.ResourcesUsed
+        Me.allocationPreviewChart.Size = New System.Drawing.Size(260, 186)
+        Me.allocationPreviewChart.TabIndex = 0
+        '
+        'allocationLegendGrid
+        '
+        Me.allocationLegendGrid.AllowUserToAddRows = False
+        Me.allocationLegendGrid.AllowUserToDeleteRows = False
+        Me.allocationLegendGrid.BackgroundColor = System.Drawing.Color.White
+        Me.allocationLegendGrid.BorderStyle = System.Windows.Forms.BorderStyle.None
+        Me.allocationLegendGrid.ColumnHeadersHeight = 29
+        Me.allocationLegendGrid.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.allocationLegendGrid.Location = New System.Drawing.Point(0, 0)
+        Me.allocationLegendGrid.Name = "allocationLegendGrid"
+        Me.allocationLegendGrid.ReadOnly = True
+        Me.allocationLegendGrid.RowHeadersVisible = False
+        Me.allocationLegendGrid.RowHeadersWidth = 51
+        Me.allocationLegendGrid.Size = New System.Drawing.Size(344, 186)
+        Me.allocationLegendGrid.TabIndex = 0
         '
         'allocationPreviewBadges
         '
@@ -650,56 +683,25 @@ Partial Class SMASchedulerForm
         Me.allocationSecondaryLabel.Text = "Assigned Hours: 24 hrs"
         Me.allocationSecondaryLabel.TextAlign = System.Drawing.ContentAlignment.MiddleCenter
         '
-        'allocationPreviewBodySplit
+        'allocationPreviewTitle
         '
-        Me.allocationPreviewBodySplit.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.allocationPreviewBodySplit.Location = New System.Drawing.Point(8, 70)
-        Me.allocationPreviewBodySplit.Name = "allocationPreviewBodySplit"
-        '
-        'allocationPreviewBodySplit.Panel1
-        '
-        Me.allocationPreviewBodySplit.Panel1.Controls.Add(Me.allocationPreviewChart)
-        '
-        'allocationPreviewBodySplit.Panel2
-        '
-        Me.allocationPreviewBodySplit.Panel2.Controls.Add(Me.allocationLegendGrid)
-        Me.allocationPreviewBodySplit.Size = New System.Drawing.Size(608, 187)
-        Me.allocationPreviewBodySplit.SplitterDistance = 260
-        Me.allocationPreviewBodySplit.SplitterWidth = 4
-        Me.allocationPreviewBodySplit.TabIndex = 2
-        '
-        'allocationPreviewChart
-        '
-        Me.allocationPreviewChart.BackColor = System.Drawing.Color.White
-        Me.allocationPreviewChart.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.allocationPreviewChart.Location = New System.Drawing.Point(0, 0)
-        Me.allocationPreviewChart.Name = "allocationPreviewChart"
-        Me.allocationPreviewChart.PreviewMode = SMAScheduler.PlannerPreviewMode.ResourcesUsed
-        Me.allocationPreviewChart.Size = New System.Drawing.Size(260, 187)
-        Me.allocationPreviewChart.TabIndex = 0
-        '
-        'allocationLegendGrid
-        '
-        Me.allocationLegendGrid.AllowUserToAddRows = False
-        Me.allocationLegendGrid.AllowUserToDeleteRows = False
-        Me.allocationLegendGrid.BackgroundColor = System.Drawing.Color.White
-        Me.allocationLegendGrid.BorderStyle = System.Windows.Forms.BorderStyle.None
-        Me.allocationLegendGrid.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.allocationLegendGrid.Location = New System.Drawing.Point(0, 0)
-        Me.allocationLegendGrid.Name = "allocationLegendGrid"
-        Me.allocationLegendGrid.ReadOnly = True
-        Me.allocationLegendGrid.RowHeadersVisible = False
-        Me.allocationLegendGrid.Size = New System.Drawing.Size(344, 187)
-        Me.allocationLegendGrid.TabIndex = 0
+        Me.allocationPreviewTitle.Dock = System.Windows.Forms.DockStyle.Top
+        Me.allocationPreviewTitle.Font = New System.Drawing.Font("Segoe UI Semibold", 11.0!)
+        Me.allocationPreviewTitle.ForeColor = System.Drawing.Color.FromArgb(CType(CType(24, Byte), Integer), CType(CType(31, Byte), Integer), CType(CType(42, Byte), Integer))
+        Me.allocationPreviewTitle.Location = New System.Drawing.Point(8, 8)
+        Me.allocationPreviewTitle.Name = "allocationPreviewTitle"
+        Me.allocationPreviewTitle.Size = New System.Drawing.Size(608, 28)
+        Me.allocationPreviewTitle.TabIndex = 0
+        Me.allocationPreviewTitle.Text = "Planner Preview - Resources Used"
         '
         'taskUsageTab
         '
         Me.taskUsageTab.BackColor = System.Drawing.Color.White
         Me.taskUsageTab.Controls.Add(Me.taskUsageSplit)
-        Me.taskUsageTab.Location = New System.Drawing.Point(4, 32)
+        Me.taskUsageTab.Location = New System.Drawing.Point(4, 31)
         Me.taskUsageTab.Name = "taskUsageTab"
         Me.taskUsageTab.Padding = New System.Windows.Forms.Padding(3)
-        Me.taskUsageTab.Size = New System.Drawing.Size(1569, 696)
+        Me.taskUsageTab.Size = New System.Drawing.Size(1569, 697)
         Me.taskUsageTab.TabIndex = 1
         Me.taskUsageTab.Text = "Task Usage View"
         '
@@ -718,7 +720,7 @@ Partial Class SMASchedulerForm
         '
         Me.taskUsageSplit.Panel2.Controls.Add(Me.taskUsagePreviewPanel)
         Me.taskUsageSplit.Panel2MinSize = 360
-        Me.taskUsageSplit.Size = New System.Drawing.Size(1563, 690)
+        Me.taskUsageSplit.Size = New System.Drawing.Size(1563, 691)
         Me.taskUsageSplit.SplitterDistance = 1040
         Me.taskUsageSplit.SplitterWidth = 5
         Me.taskUsageSplit.TabIndex = 0
@@ -735,8 +737,9 @@ Partial Class SMASchedulerForm
         Me._taskUsageGrid.Location = New System.Drawing.Point(0, 0)
         Me._taskUsageGrid.Name = "_taskUsageGrid"
         Me._taskUsageGrid.RowHeadersVisible = False
+        Me._taskUsageGrid.RowHeadersWidth = 51
         Me._taskUsageGrid.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.CellSelect
-        Me._taskUsageGrid.Size = New System.Drawing.Size(1040, 690)
+        Me._taskUsageGrid.Size = New System.Drawing.Size(1040, 691)
         Me._taskUsageGrid.TabIndex = 0
         '
         'taskUsagePreviewPanel
@@ -749,18 +752,52 @@ Partial Class SMASchedulerForm
         Me.taskUsagePreviewPanel.Location = New System.Drawing.Point(0, 0)
         Me.taskUsagePreviewPanel.Name = "taskUsagePreviewPanel"
         Me.taskUsagePreviewPanel.Padding = New System.Windows.Forms.Padding(12)
-        Me.taskUsagePreviewPanel.Size = New System.Drawing.Size(518, 690)
+        Me.taskUsagePreviewPanel.Size = New System.Drawing.Size(518, 691)
         Me.taskUsagePreviewPanel.TabIndex = 0
         '
-        'taskUsagePreviewTitle
+        'taskUsagePreviewBodySplit
         '
-        Me.taskUsagePreviewTitle.Dock = System.Windows.Forms.DockStyle.Top
-        Me.taskUsagePreviewTitle.Font = New System.Drawing.Font("Segoe UI Semibold", 12.0!)
-        Me.taskUsagePreviewTitle.Location = New System.Drawing.Point(12, 12)
-        Me.taskUsagePreviewTitle.Name = "taskUsagePreviewTitle"
-        Me.taskUsagePreviewTitle.Size = New System.Drawing.Size(494, 32)
-        Me.taskUsagePreviewTitle.TabIndex = 0
-        Me.taskUsagePreviewTitle.Text = "Planner Preview - Task Count"
+        Me.taskUsagePreviewBodySplit.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.taskUsagePreviewBodySplit.Location = New System.Drawing.Point(12, 84)
+        Me.taskUsagePreviewBodySplit.Name = "taskUsagePreviewBodySplit"
+        Me.taskUsagePreviewBodySplit.Orientation = System.Windows.Forms.Orientation.Horizontal
+        '
+        'taskUsagePreviewBodySplit.Panel1
+        '
+        Me.taskUsagePreviewBodySplit.Panel1.Controls.Add(Me.taskUsagePreviewChart)
+        '
+        'taskUsagePreviewBodySplit.Panel2
+        '
+        Me.taskUsagePreviewBodySplit.Panel2.Controls.Add(Me.taskUsageLegendGrid)
+        Me.taskUsagePreviewBodySplit.Size = New System.Drawing.Size(494, 595)
+        Me.taskUsagePreviewBodySplit.SplitterDistance = 350
+        Me.taskUsagePreviewBodySplit.TabIndex = 2
+        '
+        'taskUsagePreviewChart
+        '
+        Me.taskUsagePreviewChart.BackColor = System.Drawing.Color.White
+        Me.taskUsagePreviewChart.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.taskUsagePreviewChart.Location = New System.Drawing.Point(0, 0)
+        Me.taskUsagePreviewChart.Name = "taskUsagePreviewChart"
+        Me.taskUsagePreviewChart.PreviewMode = SMAScheduler.PlannerPreviewMode.TaskDuration
+        Me.taskUsagePreviewChart.Size = New System.Drawing.Size(494, 350)
+        Me.taskUsagePreviewChart.TabIndex = 0
+        '
+        'taskUsageLegendGrid
+        '
+        Me.taskUsageLegendGrid.AllowUserToAddRows = False
+        Me.taskUsageLegendGrid.AllowUserToDeleteRows = False
+        Me.taskUsageLegendGrid.BackgroundColor = System.Drawing.Color.White
+        Me.taskUsageLegendGrid.BorderStyle = System.Windows.Forms.BorderStyle.None
+        Me.taskUsageLegendGrid.ColumnHeadersHeight = 29
+        Me.taskUsageLegendGrid.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.taskUsageLegendGrid.Location = New System.Drawing.Point(0, 0)
+        Me.taskUsageLegendGrid.Name = "taskUsageLegendGrid"
+        Me.taskUsageLegendGrid.ReadOnly = True
+        Me.taskUsageLegendGrid.RowHeadersVisible = False
+        Me.taskUsageLegendGrid.RowHeadersWidth = 51
+        Me.taskUsageLegendGrid.Size = New System.Drawing.Size(494, 241)
+        Me.taskUsageLegendGrid.TabIndex = 0
         '
         'taskUsagePreviewBadges
         '
@@ -793,51 +830,24 @@ Partial Class SMASchedulerForm
         Me.taskUsageSecondaryLabel.Text = "Project Duration: 3 days"
         Me.taskUsageSecondaryLabel.TextAlign = System.Drawing.ContentAlignment.MiddleCenter
         '
-        'taskUsagePreviewBodySplit
+        'taskUsagePreviewTitle
         '
-        Me.taskUsagePreviewBodySplit.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.taskUsagePreviewBodySplit.Location = New System.Drawing.Point(12, 84)
-        Me.taskUsagePreviewBodySplit.Name = "taskUsagePreviewBodySplit"
-        Me.taskUsagePreviewBodySplit.Orientation = System.Windows.Forms.Orientation.Horizontal
-        Me.taskUsagePreviewBodySplit.Panel1.Controls.Add(Me.taskUsagePreviewChart)
-        Me.taskUsagePreviewBodySplit.Panel2.Controls.Add(Me.taskUsageLegendGrid)
-        Me.taskUsagePreviewBodySplit.Size = New System.Drawing.Size(494, 594)
-        Me.taskUsagePreviewBodySplit.SplitterDistance = 350
-        Me.taskUsagePreviewBodySplit.SplitterWidth = 4
-        Me.taskUsagePreviewBodySplit.TabIndex = 2
-        '
-        'taskUsagePreviewChart
-        '
-        Me.taskUsagePreviewChart.BackColor = System.Drawing.Color.White
-        Me.taskUsagePreviewChart.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.taskUsagePreviewChart.Location = New System.Drawing.Point(0, 0)
-        Me.taskUsagePreviewChart.Name = "taskUsagePreviewChart"
-        Me.taskUsagePreviewChart.PreviewMode = SMAScheduler.PlannerPreviewMode.TaskDuration
-        Me.taskUsagePreviewChart.Size = New System.Drawing.Size(494, 350)
-        Me.taskUsagePreviewChart.TabIndex = 0
-        '
-        'taskUsageLegendGrid
-        '
-        Me.taskUsageLegendGrid.AllowUserToAddRows = False
-        Me.taskUsageLegendGrid.AllowUserToDeleteRows = False
-        Me.taskUsageLegendGrid.BackgroundColor = System.Drawing.Color.White
-        Me.taskUsageLegendGrid.BorderStyle = System.Windows.Forms.BorderStyle.None
-        Me.taskUsageLegendGrid.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.taskUsageLegendGrid.Location = New System.Drawing.Point(0, 0)
-        Me.taskUsageLegendGrid.Name = "taskUsageLegendGrid"
-        Me.taskUsageLegendGrid.ReadOnly = True
-        Me.taskUsageLegendGrid.RowHeadersVisible = False
-        Me.taskUsageLegendGrid.Size = New System.Drawing.Size(494, 240)
-        Me.taskUsageLegendGrid.TabIndex = 0
+        Me.taskUsagePreviewTitle.Dock = System.Windows.Forms.DockStyle.Top
+        Me.taskUsagePreviewTitle.Font = New System.Drawing.Font("Segoe UI Semibold", 12.0!)
+        Me.taskUsagePreviewTitle.Location = New System.Drawing.Point(12, 12)
+        Me.taskUsagePreviewTitle.Name = "taskUsagePreviewTitle"
+        Me.taskUsagePreviewTitle.Size = New System.Drawing.Size(494, 32)
+        Me.taskUsagePreviewTitle.TabIndex = 0
+        Me.taskUsagePreviewTitle.Text = "Planner Preview - Task Count"
         '
         'resourceUsageTab
         '
         Me.resourceUsageTab.BackColor = System.Drawing.Color.White
         Me.resourceUsageTab.Controls.Add(Me.resourceUsageSplit)
-        Me.resourceUsageTab.Location = New System.Drawing.Point(4, 32)
+        Me.resourceUsageTab.Location = New System.Drawing.Point(4, 35)
         Me.resourceUsageTab.Name = "resourceUsageTab"
         Me.resourceUsageTab.Padding = New System.Windows.Forms.Padding(3)
-        Me.resourceUsageTab.Size = New System.Drawing.Size(1569, 696)
+        Me.resourceUsageTab.Size = New System.Drawing.Size(1569, 693)
         Me.resourceUsageTab.TabIndex = 2
         Me.resourceUsageTab.Text = "Resource Usage View"
         '
@@ -846,11 +856,17 @@ Partial Class SMASchedulerForm
         Me.resourceUsageSplit.Dock = System.Windows.Forms.DockStyle.Fill
         Me.resourceUsageSplit.Location = New System.Drawing.Point(3, 3)
         Me.resourceUsageSplit.Name = "resourceUsageSplit"
+        '
+        'resourceUsageSplit.Panel1
+        '
         Me.resourceUsageSplit.Panel1.Controls.Add(Me._resourceUsageGrid)
         Me.resourceUsageSplit.Panel1MinSize = 700
+        '
+        'resourceUsageSplit.Panel2
+        '
         Me.resourceUsageSplit.Panel2.Controls.Add(Me.resourceUsagePreviewPanel)
         Me.resourceUsageSplit.Panel2MinSize = 360
-        Me.resourceUsageSplit.Size = New System.Drawing.Size(1563, 690)
+        Me.resourceUsageSplit.Size = New System.Drawing.Size(1563, 687)
         Me.resourceUsageSplit.SplitterDistance = 1040
         Me.resourceUsageSplit.SplitterWidth = 5
         Me.resourceUsageSplit.TabIndex = 0
@@ -867,8 +883,9 @@ Partial Class SMASchedulerForm
         Me._resourceUsageGrid.Location = New System.Drawing.Point(0, 0)
         Me._resourceUsageGrid.Name = "_resourceUsageGrid"
         Me._resourceUsageGrid.RowHeadersVisible = False
+        Me._resourceUsageGrid.RowHeadersWidth = 51
         Me._resourceUsageGrid.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.CellSelect
-        Me._resourceUsageGrid.Size = New System.Drawing.Size(1040, 690)
+        Me._resourceUsageGrid.Size = New System.Drawing.Size(1040, 687)
         Me._resourceUsageGrid.TabIndex = 0
         '
         'resourceUsagePreviewPanel
@@ -881,18 +898,52 @@ Partial Class SMASchedulerForm
         Me.resourceUsagePreviewPanel.Location = New System.Drawing.Point(0, 0)
         Me.resourceUsagePreviewPanel.Name = "resourceUsagePreviewPanel"
         Me.resourceUsagePreviewPanel.Padding = New System.Windows.Forms.Padding(12)
-        Me.resourceUsagePreviewPanel.Size = New System.Drawing.Size(518, 690)
+        Me.resourceUsagePreviewPanel.Size = New System.Drawing.Size(518, 687)
         Me.resourceUsagePreviewPanel.TabIndex = 0
         '
-        'resourceUsagePreviewTitle
+        'resourceUsagePreviewBodySplit
         '
-        Me.resourceUsagePreviewTitle.Dock = System.Windows.Forms.DockStyle.Top
-        Me.resourceUsagePreviewTitle.Font = New System.Drawing.Font("Segoe UI Semibold", 12.0!)
-        Me.resourceUsagePreviewTitle.Location = New System.Drawing.Point(12, 12)
-        Me.resourceUsagePreviewTitle.Name = "resourceUsagePreviewTitle"
-        Me.resourceUsagePreviewTitle.Size = New System.Drawing.Size(494, 32)
-        Me.resourceUsagePreviewTitle.TabIndex = 0
-        Me.resourceUsagePreviewTitle.Text = "Planner Preview - Resource Contribution"
+        Me.resourceUsagePreviewBodySplit.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.resourceUsagePreviewBodySplit.Location = New System.Drawing.Point(12, 84)
+        Me.resourceUsagePreviewBodySplit.Name = "resourceUsagePreviewBodySplit"
+        Me.resourceUsagePreviewBodySplit.Orientation = System.Windows.Forms.Orientation.Horizontal
+        '
+        'resourceUsagePreviewBodySplit.Panel1
+        '
+        Me.resourceUsagePreviewBodySplit.Panel1.Controls.Add(Me.resourceUsagePreviewChart)
+        '
+        'resourceUsagePreviewBodySplit.Panel2
+        '
+        Me.resourceUsagePreviewBodySplit.Panel2.Controls.Add(Me.resourceUsageLegendGrid)
+        Me.resourceUsagePreviewBodySplit.Size = New System.Drawing.Size(494, 591)
+        Me.resourceUsagePreviewBodySplit.SplitterDistance = 348
+        Me.resourceUsagePreviewBodySplit.TabIndex = 2
+        '
+        'resourceUsagePreviewChart
+        '
+        Me.resourceUsagePreviewChart.BackColor = System.Drawing.Color.White
+        Me.resourceUsagePreviewChart.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.resourceUsagePreviewChart.Location = New System.Drawing.Point(0, 0)
+        Me.resourceUsagePreviewChart.Name = "resourceUsagePreviewChart"
+        Me.resourceUsagePreviewChart.PreviewMode = SMAScheduler.PlannerPreviewMode.ResourceContribution
+        Me.resourceUsagePreviewChart.Size = New System.Drawing.Size(494, 348)
+        Me.resourceUsagePreviewChart.TabIndex = 0
+        '
+        'resourceUsageLegendGrid
+        '
+        Me.resourceUsageLegendGrid.AllowUserToAddRows = False
+        Me.resourceUsageLegendGrid.AllowUserToDeleteRows = False
+        Me.resourceUsageLegendGrid.BackgroundColor = System.Drawing.Color.White
+        Me.resourceUsageLegendGrid.BorderStyle = System.Windows.Forms.BorderStyle.None
+        Me.resourceUsageLegendGrid.ColumnHeadersHeight = 29
+        Me.resourceUsageLegendGrid.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.resourceUsageLegendGrid.Location = New System.Drawing.Point(0, 0)
+        Me.resourceUsageLegendGrid.Name = "resourceUsageLegendGrid"
+        Me.resourceUsageLegendGrid.ReadOnly = True
+        Me.resourceUsageLegendGrid.RowHeadersVisible = False
+        Me.resourceUsageLegendGrid.RowHeadersWidth = 51
+        Me.resourceUsageLegendGrid.Size = New System.Drawing.Size(494, 239)
+        Me.resourceUsageLegendGrid.TabIndex = 0
         '
         'resourceUsagePreviewBadges
         '
@@ -925,51 +976,24 @@ Partial Class SMASchedulerForm
         Me.resourceUsageSecondaryLabel.Text = "Assigned Hours: 24 hrs"
         Me.resourceUsageSecondaryLabel.TextAlign = System.Drawing.ContentAlignment.MiddleCenter
         '
-        'resourceUsagePreviewBodySplit
+        'resourceUsagePreviewTitle
         '
-        Me.resourceUsagePreviewBodySplit.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.resourceUsagePreviewBodySplit.Location = New System.Drawing.Point(12, 84)
-        Me.resourceUsagePreviewBodySplit.Name = "resourceUsagePreviewBodySplit"
-        Me.resourceUsagePreviewBodySplit.Orientation = System.Windows.Forms.Orientation.Horizontal
-        Me.resourceUsagePreviewBodySplit.Panel1.Controls.Add(Me.resourceUsagePreviewChart)
-        Me.resourceUsagePreviewBodySplit.Panel2.Controls.Add(Me.resourceUsageLegendGrid)
-        Me.resourceUsagePreviewBodySplit.Size = New System.Drawing.Size(494, 594)
-        Me.resourceUsagePreviewBodySplit.SplitterDistance = 350
-        Me.resourceUsagePreviewBodySplit.SplitterWidth = 4
-        Me.resourceUsagePreviewBodySplit.TabIndex = 2
-        '
-        'resourceUsagePreviewChart
-        '
-        Me.resourceUsagePreviewChart.BackColor = System.Drawing.Color.White
-        Me.resourceUsagePreviewChart.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.resourceUsagePreviewChart.Location = New System.Drawing.Point(0, 0)
-        Me.resourceUsagePreviewChart.Name = "resourceUsagePreviewChart"
-        Me.resourceUsagePreviewChart.PreviewMode = SMAScheduler.PlannerPreviewMode.ResourceContribution
-        Me.resourceUsagePreviewChart.Size = New System.Drawing.Size(494, 350)
-        Me.resourceUsagePreviewChart.TabIndex = 0
-        '
-        'resourceUsageLegendGrid
-        '
-        Me.resourceUsageLegendGrid.AllowUserToAddRows = False
-        Me.resourceUsageLegendGrid.AllowUserToDeleteRows = False
-        Me.resourceUsageLegendGrid.BackgroundColor = System.Drawing.Color.White
-        Me.resourceUsageLegendGrid.BorderStyle = System.Windows.Forms.BorderStyle.None
-        Me.resourceUsageLegendGrid.Dock = System.Windows.Forms.DockStyle.Fill
-        Me.resourceUsageLegendGrid.Location = New System.Drawing.Point(0, 0)
-        Me.resourceUsageLegendGrid.Name = "resourceUsageLegendGrid"
-        Me.resourceUsageLegendGrid.ReadOnly = True
-        Me.resourceUsageLegendGrid.RowHeadersVisible = False
-        Me.resourceUsageLegendGrid.Size = New System.Drawing.Size(494, 240)
-        Me.resourceUsageLegendGrid.TabIndex = 0
+        Me.resourceUsagePreviewTitle.Dock = System.Windows.Forms.DockStyle.Top
+        Me.resourceUsagePreviewTitle.Font = New System.Drawing.Font("Segoe UI Semibold", 12.0!)
+        Me.resourceUsagePreviewTitle.Location = New System.Drawing.Point(12, 12)
+        Me.resourceUsagePreviewTitle.Name = "resourceUsagePreviewTitle"
+        Me.resourceUsagePreviewTitle.Size = New System.Drawing.Size(494, 32)
+        Me.resourceUsagePreviewTitle.TabIndex = 0
+        Me.resourceUsagePreviewTitle.Text = "Planner Preview - Resource Contribution"
         '
         'capacityPlanningTab
         '
         Me.capacityPlanningTab.BackColor = System.Drawing.Color.White
         Me.capacityPlanningTab.Controls.Add(Me._capacityGrid)
-        Me.capacityPlanningTab.Location = New System.Drawing.Point(4, 32)
+        Me.capacityPlanningTab.Location = New System.Drawing.Point(4, 35)
         Me.capacityPlanningTab.Name = "capacityPlanningTab"
         Me.capacityPlanningTab.Padding = New System.Windows.Forms.Padding(3)
-        Me.capacityPlanningTab.Size = New System.Drawing.Size(1569, 696)
+        Me.capacityPlanningTab.Size = New System.Drawing.Size(1569, 693)
         Me.capacityPlanningTab.TabIndex = 3
         Me.capacityPlanningTab.Text = "Capacity Planning"
         '
@@ -986,17 +1010,18 @@ Partial Class SMASchedulerForm
         Me._capacityGrid.Name = "_capacityGrid"
         Me._capacityGrid.ReadOnly = True
         Me._capacityGrid.RowHeadersVisible = False
-        Me._capacityGrid.Size = New System.Drawing.Size(1563, 690)
+        Me._capacityGrid.RowHeadersWidth = 51
+        Me._capacityGrid.Size = New System.Drawing.Size(1563, 687)
         Me._capacityGrid.TabIndex = 0
         '
         'resourceUtilizationTab
         '
         Me.resourceUtilizationTab.BackColor = System.Drawing.Color.White
         Me.resourceUtilizationTab.Controls.Add(Me.resourceUtilizationHost)
-        Me.resourceUtilizationTab.Location = New System.Drawing.Point(4, 32)
+        Me.resourceUtilizationTab.Location = New System.Drawing.Point(4, 35)
         Me.resourceUtilizationTab.Name = "resourceUtilizationTab"
         Me.resourceUtilizationTab.Padding = New System.Windows.Forms.Padding(3)
-        Me.resourceUtilizationTab.Size = New System.Drawing.Size(1569, 696)
+        Me.resourceUtilizationTab.Size = New System.Drawing.Size(1569, 693)
         Me.resourceUtilizationTab.TabIndex = 4
         Me.resourceUtilizationTab.Text = "Resource Utilization"
         '
@@ -1007,8 +1032,25 @@ Partial Class SMASchedulerForm
         Me.resourceUtilizationHost.Dock = System.Windows.Forms.DockStyle.Fill
         Me.resourceUtilizationHost.Location = New System.Drawing.Point(3, 3)
         Me.resourceUtilizationHost.Name = "resourceUtilizationHost"
-        Me.resourceUtilizationHost.Size = New System.Drawing.Size(1563, 690)
+        Me.resourceUtilizationHost.Size = New System.Drawing.Size(1563, 687)
         Me.resourceUtilizationHost.TabIndex = 0
+        '
+        '_resourceUtilizationGrid
+        '
+        Me._resourceUtilizationGrid.AllowUserToAddRows = False
+        Me._resourceUtilizationGrid.AllowUserToDeleteRows = False
+        Me._resourceUtilizationGrid.BackgroundColor = System.Drawing.Color.White
+        Me._resourceUtilizationGrid.BorderStyle = System.Windows.Forms.BorderStyle.None
+        Me._resourceUtilizationGrid.ColumnHeadersHeight = 32
+        Me._resourceUtilizationGrid.Dock = System.Windows.Forms.DockStyle.Fill
+        Me._resourceUtilizationGrid.EnableHeadersVisualStyles = False
+        Me._resourceUtilizationGrid.Location = New System.Drawing.Point(0, 48)
+        Me._resourceUtilizationGrid.Name = "_resourceUtilizationGrid"
+        Me._resourceUtilizationGrid.RowHeadersVisible = False
+        Me._resourceUtilizationGrid.RowHeadersWidth = 51
+        Me._resourceUtilizationGrid.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.CellSelect
+        Me._resourceUtilizationGrid.Size = New System.Drawing.Size(1563, 639)
+        Me._resourceUtilizationGrid.TabIndex = 1
         '
         'resourceUtilizationToolbar
         '
@@ -1077,22 +1119,6 @@ Partial Class SMASchedulerForm
         Me._resourceUtilizationMailButton.TabIndex = 4
         Me._resourceUtilizationMailButton.Text = "Send Availability Snip"
         Me._resourceUtilizationMailButton.UseVisualStyleBackColor = False
-        '
-        '_resourceUtilizationGrid
-        '
-        Me._resourceUtilizationGrid.AllowUserToAddRows = False
-        Me._resourceUtilizationGrid.AllowUserToDeleteRows = False
-        Me._resourceUtilizationGrid.BackgroundColor = System.Drawing.Color.White
-        Me._resourceUtilizationGrid.BorderStyle = System.Windows.Forms.BorderStyle.None
-        Me._resourceUtilizationGrid.ColumnHeadersHeight = 32
-        Me._resourceUtilizationGrid.Dock = System.Windows.Forms.DockStyle.Fill
-        Me._resourceUtilizationGrid.EnableHeadersVisualStyles = False
-        Me._resourceUtilizationGrid.Location = New System.Drawing.Point(0, 48)
-        Me._resourceUtilizationGrid.Name = "_resourceUtilizationGrid"
-        Me._resourceUtilizationGrid.RowHeadersVisible = False
-        Me._resourceUtilizationGrid.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.CellSelect
-        Me._resourceUtilizationGrid.Size = New System.Drawing.Size(1563, 642)
-        Me._resourceUtilizationGrid.TabIndex = 1
         '
         '_detailsPanel
         '
@@ -1171,12 +1197,12 @@ Partial Class SMASchedulerForm
         CType(Me.ganttPreviewSplit, System.ComponentModel.ISupportInitialize).EndInit()
         Me.ganttPreviewSplit.ResumeLayout(False)
         Me.allocationPreviewPanel.ResumeLayout(False)
-        Me.allocationPreviewBadges.ResumeLayout(False)
         Me.allocationPreviewBodySplit.Panel1.ResumeLayout(False)
         Me.allocationPreviewBodySplit.Panel2.ResumeLayout(False)
         CType(Me.allocationPreviewBodySplit, System.ComponentModel.ISupportInitialize).EndInit()
         Me.allocationPreviewBodySplit.ResumeLayout(False)
         CType(Me.allocationLegendGrid, System.ComponentModel.ISupportInitialize).EndInit()
+        Me.allocationPreviewBadges.ResumeLayout(False)
         Me.taskUsageTab.ResumeLayout(False)
         Me.taskUsageSplit.Panel1.ResumeLayout(False)
         Me.taskUsageSplit.Panel2.ResumeLayout(False)
@@ -1184,12 +1210,12 @@ Partial Class SMASchedulerForm
         Me.taskUsageSplit.ResumeLayout(False)
         CType(Me._taskUsageGrid, System.ComponentModel.ISupportInitialize).EndInit()
         Me.taskUsagePreviewPanel.ResumeLayout(False)
-        Me.taskUsagePreviewBadges.ResumeLayout(False)
         Me.taskUsagePreviewBodySplit.Panel1.ResumeLayout(False)
         Me.taskUsagePreviewBodySplit.Panel2.ResumeLayout(False)
         CType(Me.taskUsagePreviewBodySplit, System.ComponentModel.ISupportInitialize).EndInit()
         Me.taskUsagePreviewBodySplit.ResumeLayout(False)
         CType(Me.taskUsageLegendGrid, System.ComponentModel.ISupportInitialize).EndInit()
+        Me.taskUsagePreviewBadges.ResumeLayout(False)
         Me.resourceUsageTab.ResumeLayout(False)
         Me.resourceUsageSplit.Panel1.ResumeLayout(False)
         Me.resourceUsageSplit.Panel2.ResumeLayout(False)
@@ -1197,18 +1223,18 @@ Partial Class SMASchedulerForm
         Me.resourceUsageSplit.ResumeLayout(False)
         CType(Me._resourceUsageGrid, System.ComponentModel.ISupportInitialize).EndInit()
         Me.resourceUsagePreviewPanel.ResumeLayout(False)
-        Me.resourceUsagePreviewBadges.ResumeLayout(False)
         Me.resourceUsagePreviewBodySplit.Panel1.ResumeLayout(False)
         Me.resourceUsagePreviewBodySplit.Panel2.ResumeLayout(False)
         CType(Me.resourceUsagePreviewBodySplit, System.ComponentModel.ISupportInitialize).EndInit()
         Me.resourceUsagePreviewBodySplit.ResumeLayout(False)
         CType(Me.resourceUsageLegendGrid, System.ComponentModel.ISupportInitialize).EndInit()
+        Me.resourceUsagePreviewBadges.ResumeLayout(False)
         Me.capacityPlanningTab.ResumeLayout(False)
         CType(Me._capacityGrid, System.ComponentModel.ISupportInitialize).EndInit()
         Me.resourceUtilizationTab.ResumeLayout(False)
         Me.resourceUtilizationHost.ResumeLayout(False)
-        Me.resourceUtilizationToolbar.ResumeLayout(False)
         CType(Me._resourceUtilizationGrid, System.ComponentModel.ISupportInitialize).EndInit()
+        Me.resourceUtilizationToolbar.ResumeLayout(False)
         Me._detailsPanel.ResumeLayout(False)
         Me.statusBar.ResumeLayout(False)
         Me.statusBar.PerformLayout()
