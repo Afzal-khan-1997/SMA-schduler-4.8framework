@@ -19,20 +19,15 @@ Partial Class SMAPlannerForm
     Private Sub InitializeComponent()
         Me.headerPanel = New System.Windows.Forms.Panel()
         Me.titleLabel = New System.Windows.Forms.Label()
-        Me.promptLabel = New System.Windows.Forms.Label()
-        Me.btnNewProject = New System.Windows.Forms.Button()
-        Me.btnRefreshList = New System.Windows.Forms.Button()
         Me.searchLabel = New System.Windows.Forms.Label()
         Me._liveProjectSearchBox = New System.Windows.Forms.TextBox()
-        Me.selectorLabel = New System.Windows.Forms.Label()
-        Me._liveProjectSelector = New System.Windows.Forms.ComboBox()
         Me.btnScheduleProject = New System.Windows.Forms.Button()
-        Me._liveProjectSizeLabel = New System.Windows.Forms.Label()
-        Me.btnRescheduleProject = New System.Windows.Forms.Button()
-        Me.projectTypeCaptionLabel = New System.Windows.Forms.Label()
-        Me.projectTypeValueLabel = New System.Windows.Forms.Label()
         Me.gridPanel = New System.Windows.Forms.Panel()
         Me._grid = New System.Windows.Forms.DataGridView()
+        Me.recentFilterPanel = New System.Windows.Forms.Panel()
+        Me.recentSearchLabel = New System.Windows.Forms.Label()
+        Me._recentProjectSearchBox = New System.Windows.Forms.TextBox()
+        Me._activeProjectsCheckBox = New System.Windows.Forms.CheckBox()
         Me.listTitle = New System.Windows.Forms.Label()
         Me.planningSummaryPanel = New System.Windows.Forms.Panel()
         Me.summaryCards = New System.Windows.Forms.TableLayoutPanel()
@@ -51,6 +46,7 @@ Partial Class SMAPlannerForm
         Me.headerPanel.SuspendLayout()
         Me.gridPanel.SuspendLayout()
         CType(Me._grid, System.ComponentModel.ISupportInitialize).BeginInit()
+        Me.recentFilterPanel.SuspendLayout()
         Me.planningSummaryPanel.SuspendLayout()
         Me.summaryCards.SuspendLayout()
         Me.newProjectsPanel.SuspendLayout()
@@ -62,18 +58,9 @@ Partial Class SMAPlannerForm
         '
         Me.headerPanel.BackColor = System.Drawing.Color.FromArgb(CType(CType(229, Byte), Integer), CType(CType(241, Byte), Integer), CType(CType(255, Byte), Integer))
         Me.headerPanel.Controls.Add(Me.titleLabel)
-        Me.headerPanel.Controls.Add(Me.promptLabel)
-        Me.headerPanel.Controls.Add(Me.btnNewProject)
-        Me.headerPanel.Controls.Add(Me.btnRefreshList)
         Me.headerPanel.Controls.Add(Me.searchLabel)
         Me.headerPanel.Controls.Add(Me._liveProjectSearchBox)
-        Me.headerPanel.Controls.Add(Me.selectorLabel)
-        Me.headerPanel.Controls.Add(Me._liveProjectSelector)
         Me.headerPanel.Controls.Add(Me.btnScheduleProject)
-        Me.headerPanel.Controls.Add(Me._liveProjectSizeLabel)
-        Me.headerPanel.Controls.Add(Me.btnRescheduleProject)
-        Me.headerPanel.Controls.Add(Me.projectTypeCaptionLabel)
-        Me.headerPanel.Controls.Add(Me.projectTypeValueLabel)
         Me.headerPanel.Dock = System.Windows.Forms.DockStyle.Top
         Me.headerPanel.Location = New System.Drawing.Point(0, 0)
         Me.headerPanel.Name = "headerPanel"
@@ -88,49 +75,9 @@ Partial Class SMAPlannerForm
         Me.titleLabel.ForeColor = System.Drawing.Color.FromArgb(CType(CType(24, Byte), Integer), CType(CType(31, Byte), Integer), CType(CType(42, Byte), Integer))
         Me.titleLabel.Location = New System.Drawing.Point(24, 18)
         Me.titleLabel.Name = "titleLabel"
-        Me.titleLabel.Size = New System.Drawing.Size(220, 46)
+        Me.titleLabel.Size = New System.Drawing.Size(352, 46)
         Me.titleLabel.TabIndex = 0
-        Me.titleLabel.Text = "SMA Planner"
-        '
-        'promptLabel
-        '
-        Me.promptLabel.AutoSize = True
-        Me.promptLabel.Font = New System.Drawing.Font("Segoe UI Semibold", 11.0!)
-        Me.promptLabel.ForeColor = System.Drawing.Color.FromArgb(CType(CType(37, Byte), Integer), CType(CType(47, Byte), Integer), CType(CType(63, Byte), Integer))
-        Me.promptLabel.Location = New System.Drawing.Point(26, 76)
-        Me.promptLabel.Name = "promptLabel"
-        Me.promptLabel.Size = New System.Drawing.Size(343, 25)
-        Me.promptLabel.TabIndex = 1
-        Me.promptLabel.Text = "Do you want to plan for a new project?"
-        Me.promptLabel.Visible = False
-        '
-        'btnNewProject
-        '
-        Me.btnNewProject.BackColor = System.Drawing.Color.FromArgb(CType(CType(45, Byte), Integer), CType(CType(125, Byte), Integer), CType(CType(221, Byte), Integer))
-        Me.btnNewProject.FlatAppearance.BorderSize = 0
-        Me.btnNewProject.FlatStyle = System.Windows.Forms.FlatStyle.Flat
-        Me.btnNewProject.ForeColor = System.Drawing.Color.White
-        Me.btnNewProject.Location = New System.Drawing.Point(390, 70)
-        Me.btnNewProject.Name = "btnNewProject"
-        Me.btnNewProject.Size = New System.Drawing.Size(140, 34)
-        Me.btnNewProject.TabIndex = 2
-        Me.btnNewProject.Text = "New Project"
-        Me.btnNewProject.UseVisualStyleBackColor = False
-        Me.btnNewProject.Visible = False
-        '
-        'btnRefreshList
-        '
-        Me.btnRefreshList.BackColor = System.Drawing.Color.FromArgb(CType(CType(35, Byte), Integer), CType(CType(46, Byte), Integer), CType(CType(66, Byte), Integer))
-        Me.btnRefreshList.FlatAppearance.BorderSize = 0
-        Me.btnRefreshList.FlatStyle = System.Windows.Forms.FlatStyle.Flat
-        Me.btnRefreshList.ForeColor = System.Drawing.Color.White
-        Me.btnRefreshList.Location = New System.Drawing.Point(546, 70)
-        Me.btnRefreshList.Name = "btnRefreshList"
-        Me.btnRefreshList.Size = New System.Drawing.Size(120, 34)
-        Me.btnRefreshList.TabIndex = 3
-        Me.btnRefreshList.Text = "Refresh List"
-        Me.btnRefreshList.UseVisualStyleBackColor = False
-        Me.btnRefreshList.Visible = False
+        Me.titleLabel.Text = "SMA Planning Engine"
         '
         'searchLabel
         '
@@ -138,35 +85,17 @@ Partial Class SMAPlannerForm
         Me.searchLabel.ForeColor = System.Drawing.Color.FromArgb(CType(CType(75, Byte), Integer), CType(CType(85, Byte), Integer), CType(CType(99, Byte), Integer))
         Me.searchLabel.Location = New System.Drawing.Point(24, 76)
         Me.searchLabel.Name = "searchLabel"
-        Me.searchLabel.Size = New System.Drawing.Size(109, 20)
+        Me.searchLabel.Size = New System.Drawing.Size(122, 20)
         Me.searchLabel.TabIndex = 4
-        Me.searchLabel.Text = "Search Projects"
+        Me.searchLabel.Text = "Search Project ID"
         '
         '_liveProjectSearchBox
         '
         Me._liveProjectSearchBox.Location = New System.Drawing.Point(24, 100)
+        Me._liveProjectSearchBox.MaxLength = 8
         Me._liveProjectSearchBox.Name = "_liveProjectSearchBox"
         Me._liveProjectSearchBox.Size = New System.Drawing.Size(290, 27)
         Me._liveProjectSearchBox.TabIndex = 5
-        '
-        'selectorLabel
-        '
-        Me.selectorLabel.AutoSize = True
-        Me.selectorLabel.ForeColor = System.Drawing.Color.FromArgb(CType(CType(75, Byte), Integer), CType(CType(85, Byte), Integer), CType(CType(99, Byte), Integer))
-        Me.selectorLabel.Location = New System.Drawing.Point(336, 76)
-        Me.selectorLabel.Name = "selectorLabel"
-        Me.selectorLabel.Size = New System.Drawing.Size(115, 20)
-        Me.selectorLabel.TabIndex = 6
-        Me.selectorLabel.Text = "Select Template"
-        '
-        '_liveProjectSelector
-        '
-        Me._liveProjectSelector.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList
-        Me._liveProjectSelector.FormattingEnabled = True
-        Me._liveProjectSelector.Location = New System.Drawing.Point(336, 100)
-        Me._liveProjectSelector.Name = "_liveProjectSelector"
-        Me._liveProjectSelector.Size = New System.Drawing.Size(360, 28)
-        Me._liveProjectSelector.TabIndex = 7
         '
         'btnScheduleProject
         '
@@ -174,62 +103,18 @@ Partial Class SMAPlannerForm
         Me.btnScheduleProject.FlatAppearance.BorderSize = 0
         Me.btnScheduleProject.FlatStyle = System.Windows.Forms.FlatStyle.Flat
         Me.btnScheduleProject.ForeColor = System.Drawing.Color.White
-        Me.btnScheduleProject.Location = New System.Drawing.Point(716, 96)
+        Me.btnScheduleProject.Location = New System.Drawing.Point(356, 96)
         Me.btnScheduleProject.Name = "btnScheduleProject"
         Me.btnScheduleProject.Size = New System.Drawing.Size(150, 34)
         Me.btnScheduleProject.TabIndex = 8
         Me.btnScheduleProject.Text = "Schedule Project"
         Me.btnScheduleProject.UseVisualStyleBackColor = False
         '
-        '_liveProjectSizeLabel
-        '
-        Me._liveProjectSizeLabel.Font = New System.Drawing.Font("Segoe UI Semibold", 9.0!)
-        Me._liveProjectSizeLabel.ForeColor = System.Drawing.Color.FromArgb(CType(CType(24, Byte), Integer), CType(CType(31, Byte), Integer), CType(CType(42, Byte), Integer))
-        Me._liveProjectSizeLabel.Location = New System.Drawing.Point(24, 142)
-        Me._liveProjectSizeLabel.Name = "_liveProjectSizeLabel"
-        Me._liveProjectSizeLabel.Size = New System.Drawing.Size(260, 28)
-        Me._liveProjectSizeLabel.TabIndex = 9
-        Me._liveProjectSizeLabel.Text = "Project size:"
-        Me._liveProjectSizeLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
-        '
-        'btnRescheduleProject
-        '
-        Me.btnRescheduleProject.BackColor = System.Drawing.Color.FromArgb(CType(CType(35, Byte), Integer), CType(CType(46, Byte), Integer), CType(CType(66, Byte), Integer))
-        Me.btnRescheduleProject.FlatAppearance.BorderSize = 0
-        Me.btnRescheduleProject.FlatStyle = System.Windows.Forms.FlatStyle.Flat
-        Me.btnRescheduleProject.ForeColor = System.Drawing.Color.White
-        Me.btnRescheduleProject.Location = New System.Drawing.Point(882, 96)
-        Me.btnRescheduleProject.Name = "btnRescheduleProject"
-        Me.btnRescheduleProject.Size = New System.Drawing.Size(162, 34)
-        Me.btnRescheduleProject.TabIndex = 10
-        Me.btnRescheduleProject.Text = "Reschedule Project"
-        Me.btnRescheduleProject.UseVisualStyleBackColor = False
-        '
-        'projectTypeCaptionLabel
-        '
-        Me.projectTypeCaptionLabel.AutoSize = True
-        Me.projectTypeCaptionLabel.ForeColor = System.Drawing.Color.FromArgb(CType(CType(75, Byte), Integer), CType(CType(85, Byte), Integer), CType(CType(99, Byte), Integer))
-        Me.projectTypeCaptionLabel.Location = New System.Drawing.Point(336, 146)
-        Me.projectTypeCaptionLabel.Name = "projectTypeCaptionLabel"
-        Me.projectTypeCaptionLabel.Size = New System.Drawing.Size(92, 20)
-        Me.projectTypeCaptionLabel.TabIndex = 11
-        Me.projectTypeCaptionLabel.Text = "Report Type:"
-        '
-        'projectTypeValueLabel
-        '
-        Me.projectTypeValueLabel.Font = New System.Drawing.Font("Segoe UI Semibold", 9.0!)
-        Me.projectTypeValueLabel.ForeColor = System.Drawing.Color.FromArgb(CType(CType(24, Byte), Integer), CType(CType(31, Byte), Integer), CType(CType(42, Byte), Integer))
-        Me.projectTypeValueLabel.Location = New System.Drawing.Point(430, 142)
-        Me.projectTypeValueLabel.Name = "projectTypeValueLabel"
-        Me.projectTypeValueLabel.Size = New System.Drawing.Size(266, 28)
-        Me.projectTypeValueLabel.TabIndex = 12
-        Me.projectTypeValueLabel.Text = "New"
-        Me.projectTypeValueLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft
-        '
         'gridPanel
         '
         Me.gridPanel.BackColor = System.Drawing.Color.White
         Me.gridPanel.Controls.Add(Me._grid)
+        Me.gridPanel.Controls.Add(Me.recentFilterPanel)
         Me.gridPanel.Controls.Add(Me.listTitle)
         Me.gridPanel.Controls.Add(Me.planningSummaryPanel)
         Me.gridPanel.Controls.Add(Me._status)
@@ -250,15 +135,56 @@ Partial Class SMAPlannerForm
         Me._grid.Dock = System.Windows.Forms.DockStyle.Fill
         Me._grid.EnableHeadersVisualStyles = False
         Me._grid.GridColor = System.Drawing.Color.FromArgb(CType(CType(232, Byte), Integer), CType(CType(236, Byte), Integer), CType(CType(242, Byte), Integer))
-        Me._grid.Location = New System.Drawing.Point(24, 56)
+        Me._grid.Location = New System.Drawing.Point(24, 98)
         Me._grid.MultiSelect = False
         Me._grid.Name = "_grid"
         Me._grid.ReadOnly = True
         Me._grid.RowHeadersVisible = False
         Me._grid.RowHeadersWidth = 51
         Me._grid.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect
-        Me._grid.Size = New System.Drawing.Size(1132, 316)
+        Me._grid.Size = New System.Drawing.Size(1132, 274)
         Me._grid.TabIndex = 1
+        '
+        'recentFilterPanel
+        '
+        Me.recentFilterPanel.Controls.Add(Me.recentSearchLabel)
+        Me.recentFilterPanel.Controls.Add(Me._recentProjectSearchBox)
+        Me.recentFilterPanel.Controls.Add(Me._activeProjectsCheckBox)
+        Me.recentFilterPanel.Dock = System.Windows.Forms.DockStyle.Top
+        Me.recentFilterPanel.Location = New System.Drawing.Point(24, 56)
+        Me.recentFilterPanel.Name = "recentFilterPanel"
+        Me.recentFilterPanel.Size = New System.Drawing.Size(1132, 42)
+        Me.recentFilterPanel.TabIndex = 3
+        '
+        'recentSearchLabel
+        '
+        Me.recentSearchLabel.AutoSize = True
+        Me.recentSearchLabel.ForeColor = System.Drawing.Color.FromArgb(CType(CType(75, Byte), Integer), CType(CType(85, Byte), Integer), CType(CType(99, Byte), Integer))
+        Me.recentSearchLabel.Location = New System.Drawing.Point(0, 11)
+        Me.recentSearchLabel.Name = "recentSearchLabel"
+        Me.recentSearchLabel.Size = New System.Drawing.Size(74, 20)
+        Me.recentSearchLabel.TabIndex = 0
+        Me.recentSearchLabel.Text = "Project ID"
+        '
+        '_recentProjectSearchBox
+        '
+        Me._recentProjectSearchBox.Location = New System.Drawing.Point(82, 7)
+        Me._recentProjectSearchBox.MaxLength = 8
+        Me._recentProjectSearchBox.Name = "_recentProjectSearchBox"
+        Me._recentProjectSearchBox.Size = New System.Drawing.Size(190, 27)
+        Me._recentProjectSearchBox.TabIndex = 1
+        '
+        '_activeProjectsCheckBox
+        '
+        Me._activeProjectsCheckBox.AutoSize = True
+        Me._activeProjectsCheckBox.Checked = True
+        Me._activeProjectsCheckBox.CheckState = System.Windows.Forms.CheckState.Checked
+        Me._activeProjectsCheckBox.Location = New System.Drawing.Point(292, 9)
+        Me._activeProjectsCheckBox.Name = "_activeProjectsCheckBox"
+        Me._activeProjectsCheckBox.Size = New System.Drawing.Size(128, 24)
+        Me._activeProjectsCheckBox.TabIndex = 2
+        Me._activeProjectsCheckBox.Text = "Active Projects"
+        Me._activeProjectsCheckBox.UseVisualStyleBackColor = True
         '
         'listTitle
         '
@@ -447,11 +373,13 @@ Partial Class SMAPlannerForm
         Me.MinimumSize = New System.Drawing.Size(980, 640)
         Me.Name = "SMAPlannerForm"
         Me.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen
-        Me.Text = "SMA Planner"
+        Me.Text = "SMA Planning Engine"
         Me.headerPanel.ResumeLayout(False)
         Me.headerPanel.PerformLayout()
         Me.gridPanel.ResumeLayout(False)
         CType(Me._grid, System.ComponentModel.ISupportInitialize).EndInit()
+        Me.recentFilterPanel.ResumeLayout(False)
+        Me.recentFilterPanel.PerformLayout()
         Me.planningSummaryPanel.ResumeLayout(False)
         Me.summaryCards.ResumeLayout(False)
         Me.newProjectsPanel.ResumeLayout(False)
@@ -463,20 +391,15 @@ Partial Class SMAPlannerForm
 
     Private headerPanel As Panel
     Private titleLabel As Label
-    Private promptLabel As Label
-    Private btnNewProject As Button
-    Private btnRefreshList As Button
     Private searchLabel As Label
     Private _liveProjectSearchBox As TextBox
-    Private selectorLabel As Label
-    Private _liveProjectSelector As ComboBox
     Private btnScheduleProject As Button
-    Private _liveProjectSizeLabel As Label
-    Private btnRescheduleProject As Button
-    Private projectTypeCaptionLabel As Label
-    Private projectTypeValueLabel As Label
     Private gridPanel As Panel
     Private _grid As DataGridView
+    Private recentFilterPanel As Panel
+    Private recentSearchLabel As Label
+    Private _recentProjectSearchBox As TextBox
+    Private _activeProjectsCheckBox As CheckBox
     Private listTitle As Label
     Private planningSummaryPanel As Panel
     Private summaryTitleLabel As Label

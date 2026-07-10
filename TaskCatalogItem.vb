@@ -10,6 +10,9 @@ Public Class TaskCatalogItem
     Public Property VeryLargeHours As Decimal
     Public Property Assignee As String = ""
     Public Property ModuleId As Integer
+    Public Property ProjectType As String = ""
+    Public Property TypeOfReport As String = ""
+    Public Property TaskOrder As Integer
 
     Public Overrides Function ToString() As String
         Return DatabaseTaskId & " - " & Title

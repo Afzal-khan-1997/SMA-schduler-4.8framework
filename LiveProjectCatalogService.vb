@@ -120,6 +120,17 @@ Public Class LiveProjectItem
     Public Property SavedProjectId As Integer
     Public Property SourceFilePath As String = ""
     Public Property ReportType As String = ""
+    Public Property TaskReportFilter As String = ""
+    Public Property ProjectDetailsText As String = ""
+    Public Property FinalCompletionDate As Date?
+    Public Property PlanningMessage As String = ""
+    Public Property ControllerAtRolc As String = ""
+    Public Property ClientType As String = ""
+    Public Property IsPointcloud As Boolean
+    Public Property TechPack As Boolean
+    Public Property DeedProfile As Boolean
+    Public Property ShadowAnalysis As Boolean
+    Public Property UrgentSmallProjects As Boolean
 
     Public ReadOnly Property IsStoredProject As Boolean
         Get

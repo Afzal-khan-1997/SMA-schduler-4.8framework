@@ -26,6 +26,7 @@ Public Class SMASchedulerForm
     Private ReadOnly _plannerDurationLabels As New List(Of Label)
     Private _currentTheme As SchedulerThemePalette = SchedulerThemePalette.ThemeByName("Dusk")
     Private _projectType As String = "New"
+    Private _projectDetailsText As String = ""
     Private ReadOnly _capacityDateColumns As New Dictionary(Of Integer, Date)
     Private ReadOnly _taskViewDateColumns As New Dictionary(Of Integer, Date)
     Private ReadOnly _resourceUsageDateColumns As New Dictionary(Of Integer, Date)
@@ -33,6 +34,7 @@ Public Class SMASchedulerForm
     Private ReadOnly _resourceAvailabilityCache As New Dictionary(Of String, Dictionary(Of Date, Decimal))(StringComparer.OrdinalIgnoreCase)
     Private ReadOnly _resourceUtilizationOverrides As New Dictionary(Of String, Decimal)(StringComparer.OrdinalIgnoreCase)
     Private ReadOnly _resourceUtilizationHighlights As New Dictionary(Of String, Color)(StringComparer.OrdinalIgnoreCase)
+    Private ReadOnly _employeeCapacityEntries As New BindingList(Of EmployeeCapacityEntry)()
     Private ReadOnly _explicitTaskUsageEdits As New HashSet(Of String)(StringComparer.OrdinalIgnoreCase)
     Private _isRecalculating As Boolean
     Private _isRefreshingWorkspace As Boolean
@@ -96,17 +98,19 @@ Public Class SMASchedulerForm
             Return
         End If
 
+        ' Scheduler handoff from SMA Planning Engine: populate project fields first.
         ClearProjectForNewSchedule()
         _projectName.Text = If(String.IsNullOrWhiteSpace(liveProject.ProjectName), "SMA Scheduler", liveProject.ProjectName.Trim())
         _versionNumber.Text = If(String.IsNullOrWhiteSpace(liveProject.VersionNumber), "1.0", liveProject.VersionNumber.Trim())
-        _projectType = If(String.IsNullOrWhiteSpace(liveProject.ReportType),
-            If(String.IsNullOrWhiteSpace(liveProject.ProjectType), ProjectTypeFromTemplate(liveProject.TemplateName, liveProject.ProjectName), liveProject.ProjectType),
-            liveProject.ReportType)
+        _projectType = If(String.IsNullOrWhiteSpace(liveProject.ProjectType), ProjectTypeFromTemplate(liveProject.TemplateName, liveProject.ProjectName), liveProject.ProjectType)
+        _projectDetailsText = liveProject.ProjectDetailsText
         SelectProjectSize(liveProject.ProjectSize)
         UpdateProjectMetadataDisplay()
 
         Dim projectSize = CStr(_projectSizeSelector.SelectedItem)
-        LoadTemplateTasks(liveProject.TemplateName, projectSize)
+        Dim taskReportFilter = If(String.IsNullOrWhiteSpace(liveProject.TaskReportFilter), liveProject.ReportType, liveProject.TaskReportFilter)
+        ' Loads SQL Task_Template rows through TaskCatalogService and displays them in the task grid.
+        LoadTemplateTasks(_projectType, projectSize, taskReportFilter)
         If _tasks.Count = 0 Then
             ClearPlanningInputDisplays()
         End If
@@ -123,6 +127,7 @@ Public Class SMASchedulerForm
         _projectName.Text = snapshot.ProjectName
         _versionNumber.Text = If(String.IsNullOrWhiteSpace(snapshot.VersionNumber), "1.0", snapshot.VersionNumber)
         _projectType = If(String.IsNullOrWhiteSpace(snapshot.ProjectType), ProjectTypeFromTemplate("", snapshot.ProjectName), snapshot.ProjectType)
+        _projectDetailsText = ""
         SelectProjectSize(snapshot.ProjectSize)
         _totalProjectHours.Value = ClampDecimal(snapshot.TotalProjectHours, _totalProjectHours.Minimum, _totalProjectHours.Maximum)
         _resourcesNeeded.Value = ClampDecimal(snapshot.ResourcesNeeded, _resourcesNeeded.Minimum, _resourcesNeeded.Maximum)
@@ -180,15 +185,15 @@ Public Class SMASchedulerForm
         AddHandler headerPanel.SizeChanged, Sub() LayoutSchedulerHeaderActions()
         ApplyProjectStateTheme()
         AddHandler _grid.SelectionChanged, AddressOf ScheduleSelectionChanged
-        AddHandler btnSave.Click, AddressOf SaveProjectFile
-        AddHandler btnRefreshCapacity.Click, AddressOf RefreshCapacityPlanning
-        AddHandler btnAddTask.Click, AddressOf AddTask
-        AddHandler btnDelete.Click, AddressOf DeleteTask
-        AddHandler btnMoveUp.Click, AddressOf MoveTaskUp
-        AddHandler btnMoveDown.Click, AddressOf MoveTaskDown
-        AddHandler btnLink.Click, AddressOf LinkSelectedTask
-        AddHandler btnUnlink.Click, AddressOf UnlinkSelectedTask
-        AddHandler btnMilestone.Click, AddressOf ToggleMilestone
+        AddHandler btnSave.Click, AddressOf btnSave_Click
+        AddHandler btnRefreshCapacity.Click, AddressOf btnRefreshCapacity_Click
+        AddHandler btnAddTask.Click, AddressOf btnAddTask_Click
+        AddHandler btnDelete.Click, AddressOf btnDelete_Click
+        AddHandler btnMoveUp.Click, AddressOf btnMoveUp_Click
+        AddHandler btnMoveDown.Click, AddressOf btnMoveDown_Click
+        AddHandler btnLink.Click, AddressOf btnLink_Click
+        AddHandler btnUnlink.Click, AddressOf btnUnlink_Click
+        AddHandler btnMilestone.Click, AddressOf btnMilestone_Click
         AddHandler _totalProjectHours.ValueChanged, AddressOf ProjectInputsChanged
         AddHandler _resourcesNeeded.ValueChanged, AddressOf ProjectInputsChanged
         AddHandler _includeSaturdays.CheckedChanged, AddressOf AllocationInputsChanged
@@ -229,7 +234,7 @@ Public Class SMASchedulerForm
                 .TabStop = True
             }
             _scheduleProjectButton.FlatAppearance.BorderSize = 0
-            AddHandler _scheduleProjectButton.Click, AddressOf ScheduleProjectToSql
+            AddHandler _scheduleProjectButton.Click, AddressOf scheduleProjectButton_Click
         End If
 
         If _projectDetailsCaptionLabel Is Nothing Then
@@ -291,11 +296,12 @@ Public Class SMASchedulerForm
             "Small",
             Convert.ToString(_projectSizeSelector.SelectedItem, CultureInfo.InvariantCulture))
 
-        _projectDetailsValueLabel.Text = "Type: " & If(String.IsNullOrWhiteSpace(_projectType), "New", _projectType) &
+        Dim baseText = "Type: " & If(String.IsNullOrWhiteSpace(_projectType), "New", _projectType) &
             " | Size: " & projectSize
+        _projectDetailsValueLabel.Text = If(String.IsNullOrWhiteSpace(_projectDetailsText), baseText, baseText & " | " & _projectDetailsText)
     End Sub
 
-    Private Sub ScheduleProjectToSql(sender As Object, e As EventArgs)
+    Private Sub scheduleProjectButton_Click(sender As Object, e As EventArgs)
         If _tasks.Count = 0 Then
             MessageBox.Show(Me, "There is no task assigned for the project.", "No Tasks", MessageBoxButtons.OK, MessageBoxIcon.Information)
             Return
@@ -403,6 +409,9 @@ Public Class SMASchedulerForm
         If _resourceUtilizationGrid IsNot Nothing Then
             ApplyGridTheme(_resourceUtilizationGrid, theme)
         End If
+        If _employeeCapacityGrid IsNot Nothing Then
+            ApplyGridTheme(_employeeCapacityGrid, theme)
+        End If
         For Each legend In _plannerLegendGrids
             If legend IsNot Nothing Then
                 ApplyGridTheme(legend, theme)
@@ -426,6 +435,18 @@ Public Class SMASchedulerForm
         If _resourceUtilizationMailButton IsNot Nothing Then
             _resourceUtilizationMailButton.BackColor = theme.Action
             _resourceUtilizationMailButton.ForeColor = Color.White
+        End If
+        If _employeeCapacityAddButton IsNot Nothing Then
+            _employeeCapacityAddButton.BackColor = theme.Action
+            _employeeCapacityAddButton.ForeColor = Color.White
+        End If
+        If _employeeCapacityDeleteButton IsNot Nothing Then
+            _employeeCapacityDeleteButton.BackColor = theme.CommandBack
+            _employeeCapacityDeleteButton.ForeColor = Color.White
+        End If
+        If _employeeCapacityRefreshButton IsNot Nothing Then
+            _employeeCapacityRefreshButton.BackColor = theme.CommandBack
+            _employeeCapacityRefreshButton.ForeColor = Color.White
         End If
         If _scheduleProjectButton IsNot Nothing Then
             _scheduleProjectButton.BackColor = theme.Action
@@ -586,6 +607,7 @@ Public Class SMASchedulerForm
         ConfigureStaticWorkspaceGrid(_resourceUsageGrid, DataGridViewSelectionMode.CellSelect, False, False)
         ConfigureStaticWorkspaceGrid(_capacityGrid, DataGridViewSelectionMode.FullRowSelect, True, False)
         ConfigureStaticWorkspaceGrid(_resourceUtilizationGrid, DataGridViewSelectionMode.CellSelect, False, True)
+        ConfigureEmployeeCapacityGrid()
         _resourceUtilizationGrid.ReadOnly = False
 
         ConfigureDesignerPreview(PlannerPreviewMode.ResourcesUsed, allocationPreviewChart, allocationLegendGrid, allocationPrimaryLabel, allocationSecondaryLabel)
@@ -612,6 +634,14 @@ Public Class SMASchedulerForm
         AddHandler _resourceUtilizationGrid.CellParsing, AddressOf ResourceUtilizationGridCellParsing
         AddHandler _resourceUtilizationGrid.CellEndEdit, AddressOf ResourceUtilizationGridCellEndEdit
         AddHandler _resourceUtilizationGrid.DataError, AddressOf CalendarGridDataError
+
+        AddHandler _employeeCapacityAddButton.Click, AddressOf AddEmployeeCapacityEntry
+        AddHandler _employeeCapacityDeleteButton.Click, AddressOf DeleteEmployeeCapacityEntry
+        AddHandler _employeeCapacityRefreshButton.Click, AddressOf RefreshEmployeeCapacityView
+        AddHandler _employeeCapacityGrid.CellParsing, AddressOf EmployeeCapacityGridCellParsing
+        AddHandler _employeeCapacityGrid.CellEndEdit, AddressOf EmployeeCapacityGridCellEndEdit
+        AddHandler _employeeCapacityGrid.CellFormatting, AddressOf EmployeeCapacityGridCellFormatting
+        AddHandler _employeeCapacityGrid.DataError, AddressOf CalendarGridDataError
 
         AddHandler mainSplit.SizeChanged, Sub() ApplyResponsiveSplitter(mainSplit, 620, 380, 0.62R)
         AddHandler taskUsageSplit.SizeChanged, Sub() ApplyResponsiveSplitter(taskUsageSplit, 700, 360, 0.68R)
@@ -648,6 +678,58 @@ Public Class SMASchedulerForm
         grid.ColumnHeadersDefaultCellStyle.Font = New Font("Segoe UI Semibold", 9.0F)
         grid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(219, 235, 255)
         grid.DefaultCellStyle.SelectionForeColor = Color.FromArgb(24, 31, 42)
+    End Sub
+
+    Private Sub ConfigureEmployeeCapacityGrid()
+        If _employeeCapacityGrid Is Nothing Then
+            Return
+        End If
+
+        ConfigureStaticWorkspaceGrid(_employeeCapacityGrid, DataGridViewSelectionMode.FullRowSelect, False, False)
+        _employeeCapacityGrid.AutoGenerateColumns = False
+        _employeeCapacityGrid.Columns.Clear()
+
+        _employeeCapacityGrid.Columns.Add(New DataGridViewComboBoxColumn With {
+            .DataPropertyName = NameOf(EmployeeCapacityEntry.EmployeeName),
+            .HeaderText = "Employee",
+            .DataSource = _employees,
+            .Width = 220,
+            .FlatStyle = FlatStyle.Flat
+        })
+        Dim capacityTypeColumn As New DataGridViewComboBoxColumn With {
+            .DataPropertyName = NameOf(EmployeeCapacityEntry.CapacityType),
+            .HeaderText = "Capacity Type",
+            .Width = 150,
+            .FlatStyle = FlatStyle.Flat
+        }
+        capacityTypeColumn.Items.AddRange("Leave", "Training", "Meeting")
+        _employeeCapacityGrid.Columns.Add(capacityTypeColumn)
+        _employeeCapacityGrid.Columns.Add(New DataGridViewTextBoxColumn With {
+            .DataPropertyName = NameOf(EmployeeCapacityEntry.StartDate),
+            .HeaderText = "Start Date",
+            .Width = 120,
+            .DefaultCellStyle = New DataGridViewCellStyle With {.Format = "dd-MM-yyyy"}
+        })
+        _employeeCapacityGrid.Columns.Add(New DataGridViewTextBoxColumn With {
+            .DataPropertyName = NameOf(EmployeeCapacityEntry.EndDate),
+            .HeaderText = "End Date",
+            .Width = 120,
+            .DefaultCellStyle = New DataGridViewCellStyle With {.Format = "dd-MM-yyyy"}
+        })
+        _employeeCapacityGrid.Columns.Add(New DataGridViewTextBoxColumn With {
+            .DataPropertyName = NameOf(EmployeeCapacityEntry.Hours),
+            .HeaderText = "Hours",
+            .Width = 90,
+            .DefaultCellStyle = New DataGridViewCellStyle With {.Format = "0.##"}
+        })
+        _employeeCapacityGrid.Columns.Add(New DataGridViewTextBoxColumn With {
+            .DataPropertyName = NameOf(EmployeeCapacityEntry.Remarks),
+            .HeaderText = "Remarks",
+            .AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill,
+            .MinimumWidth = 220
+        })
+
+        _employeeCapacityGrid.DataSource = _employeeCapacityEntries
     End Sub
 
     Private Sub ConfigureDesignerPreview(mode As PlannerPreviewMode, chart As PlannerPieChartPanel, legend As DataGridView, primaryLabel As Label, secondaryLabel As Label)
@@ -1337,7 +1419,7 @@ Public Class SMASchedulerForm
         _resourceAvailabilityCache.Clear()
     End Sub
 
-    Private Sub AddTask(sender As Object, e As EventArgs)
+    Private Sub btnAddTask_Click(sender As Object, e As EventArgs)
         Dim nextId = If(_tasks.Count = 0, 1, _tasks.Max(Function(t) t.TaskId) + 1)
         Dim startDate = NextWorkingDate(If(_tasks.Count = 0, Date.Today, _tasks.Max(Function(t) t.FinishDate).AddDays(1)))
         _tasks.Add(New ScheduleTask With {
@@ -1381,8 +1463,8 @@ Public Class SMASchedulerForm
         RecalculateAndRefresh("Task added from allocation panel")
     End Sub
 
-    Private Sub LoadTemplateTasks(templateName As String, projectSize As String)
-        Dim templateTasks = _taskCatalogService.LoadTemplateTasks(templateName, projectSize)
+    Private Sub LoadTemplateTasks(templateName As String, projectSize As String, Optional reportType As String = "")
+        Dim templateTasks = _taskCatalogService.LoadTemplateTasks(templateName, projectSize, reportType)
         Dim startDate = NextWorkingDate(Date.Today)
         Dim totalTemplateHours = 0D
 
@@ -1434,7 +1516,7 @@ Public Class SMASchedulerForm
         }
     End Function
 
-    Private Sub DeleteTask(sender As Object, e As EventArgs)
+    Private Sub btnDelete_Click(sender As Object, e As EventArgs)
         Dim selected = SelectedTask()
         If selected Is Nothing Then
             Return
@@ -1453,11 +1535,11 @@ Public Class SMASchedulerForm
         RecalculateAndRefresh("Task deleted")
     End Sub
 
-    Private Sub MoveTaskUp(sender As Object, e As EventArgs)
+    Private Sub btnMoveUp_Click(sender As Object, e As EventArgs)
         MoveSelectedTask(-1)
     End Sub
 
-    Private Sub MoveTaskDown(sender As Object, e As EventArgs)
+    Private Sub btnMoveDown_Click(sender As Object, e As EventArgs)
         MoveSelectedTask(1)
     End Sub
 
@@ -1489,7 +1571,7 @@ Public Class SMASchedulerForm
         RecalculateAndRefresh("Task moved")
     End Sub
 
-    Private Sub LinkSelectedTask(sender As Object, e As EventArgs)
+    Private Sub btnLink_Click(sender As Object, e As EventArgs)
         If _grid.CurrentRow Is Nothing OrElse _grid.CurrentRow.Index <= 0 Then
             Return
         End If
@@ -1501,7 +1583,7 @@ Public Class SMASchedulerForm
         RecalculateAndRefresh("Linked to previous task")
     End Sub
 
-    Private Sub UnlinkSelectedTask(sender As Object, e As EventArgs)
+    Private Sub btnUnlink_Click(sender As Object, e As EventArgs)
         Dim task = SelectedTask()
         If task IsNot Nothing Then
             task.Predecessors = ""
@@ -1509,7 +1591,7 @@ Public Class SMASchedulerForm
         End If
     End Sub
 
-    Private Sub ToggleMilestone(sender As Object, e As EventArgs)
+    Private Sub btnMilestone_Click(sender As Object, e As EventArgs)
         Dim task = SelectedTask()
         If task Is Nothing Then
             Return
@@ -1520,7 +1602,7 @@ Public Class SMASchedulerForm
         RecalculateAndRefresh("Milestone updated")
     End Sub
 
-    Private Sub SaveProjectFile(sender As Object, e As EventArgs)
+    Private Sub btnSave_Click(sender As Object, e As EventArgs)
         If _tasks.Count = 0 Then
             MessageBox.Show(Me, "There is no task assigned for the project.", "No Tasks", MessageBoxButtons.OK, MessageBoxIcon.Information)
             Return
@@ -1529,7 +1611,7 @@ Public Class SMASchedulerForm
         SaveProjectToSql(showSuccessMessage:=True)
     End Sub
 
-    Private Sub RefreshCapacityPlanning(sender As Object, e As EventArgs)
+    Private Sub btnRefreshCapacity_Click(sender As Object, e As EventArgs)
         CommitWorkspaceGridEdits()
         RecalculateAndRefresh("Capacity planning refreshed")
         Dim sqlSaved = SaveProjectToSql(showSuccessMessage:=False)
@@ -2046,11 +2128,15 @@ Public Class SMASchedulerForm
             PrepareGridForRebuild(_resourceUsageGrid)
             PrepareGridForRebuild(_capacityGrid)
             PrepareGridForRebuild(_resourceUtilizationGrid)
+            PrepareGridForRebuild(_employeeCapacityGrid)
 
             UpdateTaskUsageGrid()
             UpdateResourceUsageGrid()
             UpdateCapacityPlanningGrid()
             UpdateResourceUtilizationGrid()
+            If _employeeCapacityGrid IsNot Nothing Then
+                _employeeCapacityGrid.Refresh()
+            End If
             UpdateEmbeddedPlannerPreview()
         Finally
             _isRefreshingWorkspace = False
@@ -2760,6 +2846,117 @@ Public Class SMASchedulerForm
         UpdateResourceUtilizationGrid()
     End Sub
 
+    Private Sub AddEmployeeCapacityEntry(sender As Object, e As EventArgs)
+        Dim entry As New EmployeeCapacityEntry With {
+            .EmployeeName = DefaultEmployeeForTask(Nothing),
+            .CapacityType = "Leave",
+            .StartDate = Date.Today,
+            .EndDate = Date.Today,
+            .Hours = 8D,
+            .Remarks = ""
+        }
+
+        _employeeCapacityEntries.Add(entry)
+        If _employeeCapacityGrid IsNot Nothing AndAlso _employeeCapacityGrid.Rows.Count > 0 Then
+            _employeeCapacityGrid.CurrentCell = _employeeCapacityGrid.Rows(_employeeCapacityGrid.Rows.Count - 1).Cells(0)
+        End If
+
+        RefreshWorkspaceTabs()
+        SetStatus("Employee capacity entry added")
+    End Sub
+
+    Private Sub DeleteEmployeeCapacityEntry(sender As Object, e As EventArgs)
+        If _employeeCapacityGrid Is Nothing OrElse _employeeCapacityGrid.CurrentRow Is Nothing Then
+            Return
+        End If
+
+        Dim entry = TryCast(_employeeCapacityGrid.CurrentRow.DataBoundItem, EmployeeCapacityEntry)
+        If entry Is Nothing Then
+            Return
+        End If
+
+        _employeeCapacityEntries.Remove(entry)
+        RefreshWorkspaceTabs()
+        SetStatus("Employee capacity entry deleted")
+    End Sub
+
+    Private Sub RefreshEmployeeCapacityView(sender As Object, e As EventArgs)
+        RefreshWorkspaceTabs()
+        SetStatus("Employee capacity has been refreshed")
+    End Sub
+
+    Private Sub EmployeeCapacityGridCellParsing(sender As Object, e As DataGridViewCellParsingEventArgs)
+        If e.RowIndex < 0 OrElse e.ColumnIndex < 0 Then
+            Return
+        End If
+
+        If e.ColumnIndex = 2 OrElse e.ColumnIndex = 3 Then
+            Dim parsedDate As Date
+            If TryParseGridDate(Convert.ToString(e.Value, CultureInfo.CurrentCulture), parsedDate) Then
+                e.Value = parsedDate.Date
+                e.ParsingApplied = True
+            End If
+            Return
+        End If
+
+        If e.ColumnIndex = 4 Then
+            Dim parsedDecimal As Decimal
+            If Decimal.TryParse(Convert.ToString(e.Value, CultureInfo.CurrentCulture), NumberStyles.Number, CultureInfo.CurrentCulture, parsedDecimal) OrElse
+                Decimal.TryParse(Convert.ToString(e.Value, CultureInfo.InvariantCulture), NumberStyles.Number, CultureInfo.InvariantCulture, parsedDecimal) Then
+                e.Value = Math.Max(0D, parsedDecimal)
+                e.ParsingApplied = True
+            End If
+        End If
+    End Sub
+
+    Private Sub EmployeeCapacityGridCellEndEdit(sender As Object, e As DataGridViewCellEventArgs)
+        If e.RowIndex < 0 OrElse _employeeCapacityGrid Is Nothing Then
+            Return
+        End If
+
+        Dim entry = TryCast(_employeeCapacityGrid.Rows(e.RowIndex).DataBoundItem, EmployeeCapacityEntry)
+        If entry Is Nothing Then
+            Return
+        End If
+
+        If entry.EndDate < entry.StartDate Then
+            entry.EndDate = entry.StartDate
+        End If
+        entry.Hours = Math.Max(0D, entry.Hours)
+
+        RefreshWorkspaceTabs()
+        SetStatus("Employee capacity updated")
+    End Sub
+
+    Private Sub EmployeeCapacityGridCellFormatting(sender As Object, e As DataGridViewCellFormattingEventArgs)
+        If e.RowIndex < 0 OrElse e.ColumnIndex < 0 Then
+            Return
+        End If
+
+        If e.ColumnIndex = 1 Then
+            Dim typeText = Convert.ToString(e.Value, CultureInfo.InvariantCulture)
+            If typeText.Equals("Leave", StringComparison.OrdinalIgnoreCase) Then
+                e.CellStyle.BackColor = Color.FromArgb(220, 235, 255)
+                e.CellStyle.ForeColor = Color.FromArgb(31, 78, 121)
+            ElseIf typeText.Equals("Training", StringComparison.OrdinalIgnoreCase) Then
+                e.CellStyle.BackColor = Color.FromArgb(255, 246, 196)
+                e.CellStyle.ForeColor = Color.FromArgb(120, 70, 0)
+            ElseIf typeText.Equals("Meeting", StringComparison.OrdinalIgnoreCase) Then
+                e.CellStyle.BackColor = Color.FromArgb(224, 245, 232)
+                e.CellStyle.ForeColor = Color.FromArgb(22, 101, 52)
+            End If
+        ElseIf e.ColumnIndex = 4 Then
+            Dim hours = DecimalCellValue(e.Value)
+            If hours > 8D Then
+                e.CellStyle.BackColor = Color.FromArgb(255, 210, 210)
+                e.CellStyle.ForeColor = Color.Firebrick
+            ElseIf hours > 0D Then
+                e.CellStyle.BackColor = Color.FromArgb(224, 245, 232)
+                e.CellStyle.ForeColor = Color.FromArgb(22, 101, 52)
+            End If
+        End If
+    End Sub
+
     Private Sub RefreshResourceUtilizationTab(sender As Object, e As EventArgs)
         _resourceUtilizationOverrides.Clear()
         _resourceUtilizationHighlights.Clear()
@@ -3009,14 +3206,27 @@ Public Class SMASchedulerForm
         Dim byDate As Dictionary(Of Date, Decimal) = Nothing
         Dim baseline As Decimal
         If _resourceAvailabilityCache.TryGetValue(resourceName.Trim(), byDate) AndAlso byDate IsNot Nothing AndAlso byDate.TryGetValue(workDate.Date, baseline) Then
-            Return Math.Max(0D, baseline)
+            Return Math.Max(0D, baseline - EmployeeCapacityHours(resourceName, workDate))
         End If
 
         If workDate.DayOfWeek = DayOfWeek.Saturday OrElse workDate.DayOfWeek = DayOfWeek.Sunday Then
             Return 0D
         End If
 
-        Return 8D
+        Return Math.Max(0D, 8D - EmployeeCapacityHours(resourceName, workDate))
+    End Function
+
+    Private Function EmployeeCapacityHours(resourceName As String, workDate As Date) As Decimal
+        If String.IsNullOrWhiteSpace(resourceName) Then
+            Return 0D
+        End If
+
+        Return _employeeCapacityEntries.
+            Where(Function(entry) entry IsNot Nothing AndAlso
+                String.Equals(entry.EmployeeName, resourceName.Trim(), StringComparison.OrdinalIgnoreCase) AndAlso
+                entry.StartDate.Date <= workDate.Date AndAlso
+                entry.EndDate.Date >= workDate.Date).
+            Sum(Function(entry) Math.Max(0D, entry.Hours))
     End Function
 
     Private Function PlannedHoursForResource(resourceName As String, workDate As Date, Optional ignoredTaskId As Integer = -1) As Decimal
@@ -3167,6 +3377,9 @@ Public Class SMASchedulerForm
         End If
         If _resourceUtilizationGrid IsNot Nothing Then
             _resourceUtilizationGrid.EndEdit()
+        End If
+        If _employeeCapacityGrid IsNot Nothing Then
+            _employeeCapacityGrid.EndEdit()
         End If
     End Sub
 
@@ -3544,6 +3757,15 @@ Public Class SMASchedulerForm
     Private Sub _grid_CellContentClick(sender As Object, e As DataGridViewCellEventArgs) Handles _grid.CellContentClick
 
     End Sub
+
+    Private Class EmployeeCapacityEntry
+        Public Property EmployeeName As String = ""
+        Public Property CapacityType As String = "Leave"
+        Public Property StartDate As Date = Date.Today
+        Public Property EndDate As Date = Date.Today
+        Public Property Hours As Decimal = 0D
+        Public Property Remarks As String = ""
+    End Class
 
     Private NotInheritable Class TaskRowTag
         Public Sub New(taskId As Integer)

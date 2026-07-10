@@ -96,6 +96,13 @@ Partial Class SMASchedulerForm
         Me._resourceUtilizationApplyButton = New System.Windows.Forms.Button()
         Me._resourceUtilizationClearButton = New System.Windows.Forms.Button()
         Me._resourceUtilizationMailButton = New System.Windows.Forms.Button()
+        Me.employeeCapacityTab = New System.Windows.Forms.TabPage()
+        Me.employeeCapacityHost = New System.Windows.Forms.Panel()
+        Me._employeeCapacityGrid = New System.Windows.Forms.DataGridView()
+        Me.employeeCapacityToolbar = New System.Windows.Forms.FlowLayoutPanel()
+        Me._employeeCapacityAddButton = New System.Windows.Forms.Button()
+        Me._employeeCapacityDeleteButton = New System.Windows.Forms.Button()
+        Me._employeeCapacityRefreshButton = New System.Windows.Forms.Button()
         Me._detailsPanel = New System.Windows.Forms.Panel()
         Me.taskWorkspaceTitle = New System.Windows.Forms.Label()
         Me.statusBar = New System.Windows.Forms.StatusStrip()
@@ -158,6 +165,10 @@ Partial Class SMASchedulerForm
         Me.resourceUtilizationHost.SuspendLayout()
         CType(Me._resourceUtilizationGrid, System.ComponentModel.ISupportInitialize).BeginInit()
         Me.resourceUtilizationToolbar.SuspendLayout()
+        Me.employeeCapacityTab.SuspendLayout()
+        Me.employeeCapacityHost.SuspendLayout()
+        CType(Me._employeeCapacityGrid, System.ComponentModel.ISupportInitialize).BeginInit()
+        Me.employeeCapacityToolbar.SuspendLayout()
         Me._detailsPanel.SuspendLayout()
         Me.statusBar.SuspendLayout()
         Me.SuspendLayout()
@@ -498,6 +509,7 @@ Partial Class SMASchedulerForm
         Me._workspaceTabs.Controls.Add(Me.resourceUsageTab)
         Me._workspaceTabs.Controls.Add(Me.capacityPlanningTab)
         Me._workspaceTabs.Controls.Add(Me.resourceUtilizationTab)
+        Me._workspaceTabs.Controls.Add(Me.employeeCapacityTab)
         Me._workspaceTabs.Dock = System.Windows.Forms.DockStyle.Fill
         Me._workspaceTabs.Location = New System.Drawing.Point(0, 0)
         Me._workspaceTabs.Name = "_workspaceTabs"
@@ -1120,6 +1132,94 @@ Partial Class SMASchedulerForm
         Me._resourceUtilizationMailButton.Text = "Send Availability Snip"
         Me._resourceUtilizationMailButton.UseVisualStyleBackColor = False
         '
+        'employeeCapacityTab
+        '
+        Me.employeeCapacityTab.BackColor = System.Drawing.Color.White
+        Me.employeeCapacityTab.Controls.Add(Me.employeeCapacityHost)
+        Me.employeeCapacityTab.Location = New System.Drawing.Point(4, 35)
+        Me.employeeCapacityTab.Name = "employeeCapacityTab"
+        Me.employeeCapacityTab.Padding = New System.Windows.Forms.Padding(3)
+        Me.employeeCapacityTab.Size = New System.Drawing.Size(1569, 693)
+        Me.employeeCapacityTab.TabIndex = 5
+        Me.employeeCapacityTab.Text = "Employee Capacity"
+        '
+        'employeeCapacityHost
+        '
+        Me.employeeCapacityHost.Controls.Add(Me._employeeCapacityGrid)
+        Me.employeeCapacityHost.Controls.Add(Me.employeeCapacityToolbar)
+        Me.employeeCapacityHost.Dock = System.Windows.Forms.DockStyle.Fill
+        Me.employeeCapacityHost.Location = New System.Drawing.Point(3, 3)
+        Me.employeeCapacityHost.Name = "employeeCapacityHost"
+        Me.employeeCapacityHost.Size = New System.Drawing.Size(1563, 687)
+        Me.employeeCapacityHost.TabIndex = 0
+        '
+        '_employeeCapacityGrid
+        '
+        Me._employeeCapacityGrid.AllowUserToAddRows = False
+        Me._employeeCapacityGrid.AllowUserToDeleteRows = False
+        Me._employeeCapacityGrid.BackgroundColor = System.Drawing.Color.White
+        Me._employeeCapacityGrid.BorderStyle = System.Windows.Forms.BorderStyle.None
+        Me._employeeCapacityGrid.ColumnHeadersHeight = 32
+        Me._employeeCapacityGrid.Dock = System.Windows.Forms.DockStyle.Fill
+        Me._employeeCapacityGrid.EnableHeadersVisualStyles = False
+        Me._employeeCapacityGrid.Location = New System.Drawing.Point(0, 48)
+        Me._employeeCapacityGrid.Name = "_employeeCapacityGrid"
+        Me._employeeCapacityGrid.RowHeadersVisible = False
+        Me._employeeCapacityGrid.RowHeadersWidth = 51
+        Me._employeeCapacityGrid.SelectionMode = System.Windows.Forms.DataGridViewSelectionMode.FullRowSelect
+        Me._employeeCapacityGrid.Size = New System.Drawing.Size(1563, 639)
+        Me._employeeCapacityGrid.TabIndex = 1
+        '
+        'employeeCapacityToolbar
+        '
+        Me.employeeCapacityToolbar.BackColor = System.Drawing.Color.White
+        Me.employeeCapacityToolbar.Controls.Add(Me._employeeCapacityAddButton)
+        Me.employeeCapacityToolbar.Controls.Add(Me._employeeCapacityDeleteButton)
+        Me.employeeCapacityToolbar.Controls.Add(Me._employeeCapacityRefreshButton)
+        Me.employeeCapacityToolbar.Dock = System.Windows.Forms.DockStyle.Top
+        Me.employeeCapacityToolbar.Location = New System.Drawing.Point(0, 0)
+        Me.employeeCapacityToolbar.Name = "employeeCapacityToolbar"
+        Me.employeeCapacityToolbar.Padding = New System.Windows.Forms.Padding(10, 8, 10, 6)
+        Me.employeeCapacityToolbar.Size = New System.Drawing.Size(1563, 48)
+        Me.employeeCapacityToolbar.TabIndex = 0
+        Me.employeeCapacityToolbar.WrapContents = False
+        '
+        '_employeeCapacityAddButton
+        '
+        Me._employeeCapacityAddButton.BackColor = System.Drawing.Color.FromArgb(CType(CType(34, Byte), Integer), CType(CType(169, Byte), Integer), CType(CType(105, Byte), Integer))
+        Me._employeeCapacityAddButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+        Me._employeeCapacityAddButton.ForeColor = System.Drawing.Color.White
+        Me._employeeCapacityAddButton.Location = New System.Drawing.Point(13, 11)
+        Me._employeeCapacityAddButton.Name = "_employeeCapacityAddButton"
+        Me._employeeCapacityAddButton.Size = New System.Drawing.Size(130, 28)
+        Me._employeeCapacityAddButton.TabIndex = 0
+        Me._employeeCapacityAddButton.Text = "Add Capacity"
+        Me._employeeCapacityAddButton.UseVisualStyleBackColor = False
+        '
+        '_employeeCapacityDeleteButton
+        '
+        Me._employeeCapacityDeleteButton.BackColor = System.Drawing.Color.FromArgb(CType(CType(35, Byte), Integer), CType(CType(46, Byte), Integer), CType(CType(66, Byte), Integer))
+        Me._employeeCapacityDeleteButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+        Me._employeeCapacityDeleteButton.ForeColor = System.Drawing.Color.White
+        Me._employeeCapacityDeleteButton.Location = New System.Drawing.Point(149, 11)
+        Me._employeeCapacityDeleteButton.Name = "_employeeCapacityDeleteButton"
+        Me._employeeCapacityDeleteButton.Size = New System.Drawing.Size(130, 28)
+        Me._employeeCapacityDeleteButton.TabIndex = 1
+        Me._employeeCapacityDeleteButton.Text = "Delete Entry"
+        Me._employeeCapacityDeleteButton.UseVisualStyleBackColor = False
+        '
+        '_employeeCapacityRefreshButton
+        '
+        Me._employeeCapacityRefreshButton.BackColor = System.Drawing.Color.FromArgb(CType(CType(42, Byte), Integer), CType(CType(95, Byte), Integer), CType(CType(160, Byte), Integer))
+        Me._employeeCapacityRefreshButton.FlatStyle = System.Windows.Forms.FlatStyle.Flat
+        Me._employeeCapacityRefreshButton.ForeColor = System.Drawing.Color.White
+        Me._employeeCapacityRefreshButton.Location = New System.Drawing.Point(285, 11)
+        Me._employeeCapacityRefreshButton.Name = "_employeeCapacityRefreshButton"
+        Me._employeeCapacityRefreshButton.Size = New System.Drawing.Size(150, 28)
+        Me._employeeCapacityRefreshButton.TabIndex = 2
+        Me._employeeCapacityRefreshButton.Text = "Refresh Capacity"
+        Me._employeeCapacityRefreshButton.UseVisualStyleBackColor = False
+        '
         '_detailsPanel
         '
         Me._detailsPanel.BackColor = System.Drawing.Color.White
@@ -1235,6 +1335,10 @@ Partial Class SMASchedulerForm
         Me.resourceUtilizationHost.ResumeLayout(False)
         CType(Me._resourceUtilizationGrid, System.ComponentModel.ISupportInitialize).EndInit()
         Me.resourceUtilizationToolbar.ResumeLayout(False)
+        Me.employeeCapacityTab.ResumeLayout(False)
+        Me.employeeCapacityHost.ResumeLayout(False)
+        CType(Me._employeeCapacityGrid, System.ComponentModel.ISupportInitialize).EndInit()
+        Me.employeeCapacityToolbar.ResumeLayout(False)
         Me._detailsPanel.ResumeLayout(False)
         Me.statusBar.ResumeLayout(False)
         Me.statusBar.PerformLayout()
@@ -1268,6 +1372,7 @@ Partial Class SMASchedulerForm
     Private resourceUsageTab As TabPage
     Private capacityPlanningTab As TabPage
     Private resourceUtilizationTab As TabPage
+    Private employeeCapacityTab As TabPage
     Private mainSplit As SplitContainer
     Private ganttPreviewSplit As SplitContainer
     Private allocationPreviewPanel As Panel
@@ -1307,6 +1412,12 @@ Partial Class SMASchedulerForm
     Private _resourceUtilizationClearButton As Button
     Private _resourceUtilizationMailButton As Button
     Private _resourceUtilizationGrid As DataGridView
+    Private employeeCapacityHost As Panel
+    Private employeeCapacityToolbar As FlowLayoutPanel
+    Private _employeeCapacityAddButton As Button
+    Private _employeeCapacityDeleteButton As Button
+    Private _employeeCapacityRefreshButton As Button
+    Private _employeeCapacityGrid As DataGridView
     Private projectSizeLabel As Label
     Private taskCatalogLabel As Label
     Private taskWorkspaceTitle As Label

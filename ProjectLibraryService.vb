@@ -262,6 +262,7 @@ End Class
 
 Public Class ProjectLibraryItem
     Public Property ProjectId As Integer
+    Public Property ProjectCode As String = ""
     Public Property ProjectName As String = ""
     Public Property VersionNumber As String = ""
     Public Property ProjectSize As String = ""
@@ -274,6 +275,21 @@ Public Class ProjectLibraryItem
     Public Property FinishDateText As String = ""
     Public Property UpdatedOn As Date
     Public Property FilePath As String = ""
+    Public Property IsActive As Boolean = True
+
+    Public ReadOnly Property DisplayProjectId As String
+        Get
+            If Not String.IsNullOrWhiteSpace(ProjectCode) Then
+                Return ProjectCode
+            End If
+
+            If ProjectId > 0 Then
+                Return ProjectId.ToString(CultureInfo.InvariantCulture)
+            End If
+
+            Return ""
+        End Get
+    End Property
 
     Public Shared Function FromSnapshot(filePath As String, snapshot As ProjectSnapshot) As ProjectLibraryItem
         Dim item As New ProjectLibraryItem With {

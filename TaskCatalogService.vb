@@ -103,8 +103,8 @@ Public Class TaskCatalogService
         }
     End Function
 
-    Public Function LoadTemplateTasks(templateName As String, projectSize As String) As List(Of TaskCatalogItem)
-        Dim sqlTasks = LoadTemplateTasksFromSql(templateName, projectSize)
+    Public Function LoadTemplateTasks(templateName As String, projectSize As String, Optional reportType As String = "") As List(Of TaskCatalogItem)
+        Dim sqlTasks = LoadTemplateTasksFromSql(templateName, projectSize, reportType)
         If sqlTasks.Count > 0 Then
             Return sqlTasks
         End If
@@ -151,13 +151,13 @@ Public Class TaskCatalogService
         End Try
     End Function
 
-    Private Function LoadTemplateTasksFromSql(templateName As String, projectSize As String) As List(Of TaskCatalogItem)
+    Private Function LoadTemplateTasksFromSql(templateName As String, projectSize As String, reportType As String) As List(Of TaskCatalogItem)
         If _sqlRepository Is Nothing Then
             Return New List(Of TaskCatalogItem)()
         End If
 
         Try
-            Return _sqlRepository.LoadTaskTemplates(templateName, projectSize)
+            Return _sqlRepository.LoadTaskTemplates(templateName, projectSize, reportType)
         Catch
             Return New List(Of TaskCatalogItem)()
         End Try
